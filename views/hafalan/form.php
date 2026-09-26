@@ -66,7 +66,7 @@ $prefillHint = !empty($prefillHint);
   <?php else: ?>
     <section class="card stack hafalan-card">
       <?php if ($prefillHint): ?>
-        <div class="alert success">Siap menyimak — siswa & surat sudah dipilih. Ayat belum tuntas (blok berurutan pertama) sudah dicentang.</div>
+        <div class="alert success">Siap menyimak — siswa & surat sudah dipilih. Ayat yang sudah lancar (dari awal berurutan) sudah dicentang.</div>
       <?php endif; ?>
       <?php if (!empty($errors['_form'])): ?>
         <div class="alert error"><?= e($errors['_form']) ?></div>
@@ -204,10 +204,13 @@ $prefillHint = !empty($prefillHint);
             return;
           }
 
+          // keepSelection hanya setelah list sudah terisi; load awal pakai selectedAyat dari server
           var keep = keepSelection ? currentSelected() : selectedAyat.slice();
+          var keepMap = {};
+          keep.forEach(function (n) { keepMap[String(n)] = true; });
           var html = '';
           data.ayat.forEach(function (ayat) {
-            var checked = keep.indexOf(ayat.nomor) !== -1 ? ' checked' : '';
+            var checked = keepMap[String(ayat.nomor)] ? ' checked' : '';
             html += '<label class="ayat-item">' +
               '<input type="checkbox" name="ayat[]" value="' + ayat.nomor + '"' + checked + '>' +
               '<span class="ayat-num">' + ayat.nomor + '</span>' +
@@ -278,7 +281,8 @@ $prefillHint = !empty($prefillHint);
           });
         });
 
-        loadSurat(suratSelect.value, true);
+        // false = pakai selectedAyat prefill (bukan currentSelected yang masih kosong)
+        loadSurat(suratSelect.value, false);
       })();
     </script>
   <?php endif; ?>

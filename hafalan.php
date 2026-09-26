@@ -109,7 +109,10 @@ if (isset($_SESSION['_old']['ayat']) && is_array($_SESSION['_old']['ayat'])) {
     $selectedAyat = array_map('intval', $_SESSION['_old']['ayat']);
 } elseif ($prefillSiswaId > 0 && $prefillSurat > 0) {
     $cell = HafalanProgress::cellForSiswaSurat($prefillSiswaId, $prefillSurat, $userId);
-    if ($cell && $cell['status'] !== 'tuntas') {
+    if ($cell && $cell['status'] === 'proses') {
+        // Sudah setor 1–N: centang yang sudah lancar (bukan kosong / bukan sisa saja)
+        $selectedAyat = HafalanProgress::coveredPrefix($cell['covered_ayat']);
+    } elseif ($cell && $cell['status'] === 'belum') {
         $selectedAyat = HafalanProgress::firstContiguousMissing($cell['missing']);
     }
 }

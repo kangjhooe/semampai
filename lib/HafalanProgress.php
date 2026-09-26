@@ -112,17 +112,20 @@ final class HafalanProgress
 
     /**
      * @param array<int, true> $coveredSet
-     * @return array{status:string, covered:int, total:int, kurang:int, missing:list<int>, label:string}
+     * @return array{status:string, covered:int, total:int, kurang:int, missing:list<int>, covered_ayat:list<int>, label:string}
      */
     public static function evaluateCell(array $coveredSet, int $total): array
     {
-        $covered = count($coveredSet);
+        $coveredAyat = [];
         $missing = [];
         for ($i = 1; $i <= $total; $i++) {
-            if (!isset($coveredSet[$i])) {
+            if (isset($coveredSet[$i])) {
+                $coveredAyat[] = $i;
+            } else {
                 $missing[] = $i;
             }
         }
+        $covered = count($coveredAyat);
         $kurang = count($missing);
 
         if ($covered <= 0) {
@@ -142,6 +145,7 @@ final class HafalanProgress
             'total' => $total,
             'kurang' => $kurang,
             'missing' => $missing,
+            'covered_ayat' => $coveredAyat,
             'label' => $label,
         ];
     }
@@ -180,9 +184,30 @@ final class HafalanProgress
     }
 
     /**
+     * Ayat yang sudah lancar dari nomor 1 berurutan (untuk prefill ceklis dari rekap).
+     *
+     * @param list<int> $coveredAyat
+     * @return list<int>
+     */
+    public static function coveredPrefix(array $coveredAyat): array
+    {
+        if ($coveredAyat === []) {
+            return [];
+        }
+
+        $set = array_fill_keys($coveredAyat, true);
+        $run = [];
+        for ($i = 1; isset($set[$i]); $i++) {
+            $run[] = $i;
+        }
+
+        return $run;
+    }
+
+    /**
      * Progres satu siswa pada satu surat (untuk deep-link dari rekap).
      *
-     * @return array{status:string, covered:int, total:int, kurang:int, missing:list<int>, label:string}|null
+     * @return array{status:string, covered:int, total:int, kurang:int, missing:list<int>, covered_ayat:list<int>, label:string}|null
      */
     public static function cellForSiswaSurat(int $siswaId, int $suratNomor, int $userId): ?array
     {
