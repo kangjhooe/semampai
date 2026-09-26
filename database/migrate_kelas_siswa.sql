@@ -1,0 +1,33 @@
+CREATE TABLE IF NOT EXISTS kelas (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  user_id INT UNSIGNED NOT NULL,
+  nama VARCHAR(100) NOT NULL,
+  tahun_ajaran VARCHAR(20) NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY kelas_user_nama_tahun_unique (user_id, nama, tahun_ajaran),
+  KEY kelas_user_id_index (user_id),
+  CONSTRAINT kelas_user_id_foreign
+    FOREIGN KEY (user_id) REFERENCES users (id)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS siswa (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  kelas_id INT UNSIGNED NOT NULL,
+  nama VARCHAR(255) NOT NULL,
+  nisn VARCHAR(10) NOT NULL,
+  tempat_lahir VARCHAR(100) NOT NULL,
+  tanggal_lahir DATE NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY siswa_nisn_unique (nisn),
+  KEY siswa_kelas_id_index (kelas_id),
+  CONSTRAINT siswa_kelas_id_foreign
+    FOREIGN KEY (kelas_id) REFERENCES kelas (id)
+    ON UPDATE CASCADE
+    ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

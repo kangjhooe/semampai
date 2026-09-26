@@ -1,0 +1,9 @@
+.env
+/uploads/*
+!/uploads/.gitkeep
+/storage/quran/*.json
+!/storage/quran/.gitkeep
+/vendor/
+*.log
+.DS_Store
+Thumbs.db
