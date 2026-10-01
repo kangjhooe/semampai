@@ -13,13 +13,12 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !Csrf::verify($_POST['_token'] ?? n
 }
 
 $id = (int) ($_POST['id'] ?? 0);
-$kelasId = (int) ($_POST['kelas_id'] ?? 0);
 $bahan = BahanAjar::findForUser($id, $userId);
 
 if ($bahan && BahanAjar::delete($id, $userId)) {
     flash('success', 'Bahan ajar dihapus.');
-    redirect('bahan/index.php?kelas_id=' . (int) $bahan['kelas_id']);
+    redirect('bahan/index.php');
 }
 
 flash('error', 'Bahan ajar tidak ditemukan.');
-redirect($kelasId ? 'bahan/index.php?kelas_id=' . $kelasId : 'bahan/index.php');
+redirect('bahan/index.php');

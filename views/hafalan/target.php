@@ -13,7 +13,6 @@ $selectedMap = array_fill_keys($selected, true);
 ?>
 <section class="page-head">
   <div>
-    <h1>Target hafalan kelas</h1>
     <p class="muted">Tentukan surat wajib yang harus dituntaskan siswa di kelas ini.</p>
   </div>
   <div class="actions">

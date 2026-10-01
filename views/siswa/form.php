@@ -1,13 +1,19 @@
 <?php
 /** @var array $kelas */
 /** @var array|null $siswa */
+/** @var array $daftarKelas */
 /** @var array<string, string> $errors */
 $errors = $errors ?? [];
+$daftarKelas = $daftarKelas ?? [];
 $isEdit = $siswa !== null;
+$selectedKelasTujuan = (int) (
+    $_SERVER['REQUEST_METHOD'] === 'POST'
+        ? ($_POST['kelas_tujuan_id'] ?? $kelas['id'] ?? 0)
+        : ($siswa['kelas_id'] ?? $kelas['id'] ?? 0)
+);
 ?>
 <section class="page-head">
   <div>
-    <h1><?= $isEdit ? 'Edit siswa' : 'Tambah siswa' ?></h1>
     <p class="muted">
       Kelas <?= e($kelas['nama']) ?> ·
       <a href="<?= e(app_url('siswa/index.php?kelas_id=' . $kelas['id'])) ?>">← Daftar siswa</a>
@@ -49,6 +55,23 @@ $isEdit = $siswa !== null;
         <?php if (!empty($errors['tanggal_lahir'])): ?><div class="error"><?= e($errors['tanggal_lahir']) ?></div><?php endif; ?>
       </div>
     </div>
+
+    <?php if ($isEdit && count($daftarKelas) > 1): ?>
+      <div class="field">
+        <label for="kelas_tujuan_id">Kelas</label>
+        <select id="kelas_tujuan_id" name="kelas_tujuan_id" required>
+          <?php foreach ($daftarKelas as $row): ?>
+            <option value="<?= (int) $row['id'] ?>" <?= $selectedKelasTujuan === (int) $row['id'] ? 'selected' : '' ?>>
+              <?= e($row['nama']) ?> · <?= e($row['tahun_ajaran']) ?>
+            </option>
+          <?php endforeach; ?>
+        </select>
+        <div class="hint">Ubah pilihan untuk memindahkan siswa ke kelas lain. Riwayat hafalan ikut terbawa.</div>
+        <?php if (!empty($errors['kelas_id'])): ?><div class="error"><?= e($errors['kelas_id']) ?></div><?php endif; ?>
+      </div>
+    <?php elseif ($isEdit): ?>
+      <input type="hidden" name="kelas_tujuan_id" value="<?= (int) $kelas['id'] ?>">
+    <?php endif; ?>
 
     <div class="actions">
       <button class="btn btn-primary" type="submit"><?= $isEdit ? 'Simpan perubahan' : 'Tambah siswa' ?></button>

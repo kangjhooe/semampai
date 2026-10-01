@@ -5,7 +5,6 @@ $errors = $errors ?? [];
 ?>
 <section class="page-head">
   <div>
-    <h1>Edit kelas</h1>
     <p class="muted"><a href="<?= e(app_url('kelas/index.php')) ?>">← Kembali ke pengelola kelas</a></p>
   </div>
 </section>

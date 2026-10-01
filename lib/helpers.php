@@ -57,6 +57,20 @@ function app_url(string $path = ''): string
     return $path === '' ? $base : $base . '/' . $path;
 }
 
+/** Kunci untuk tanda tangan URL (mis. unduhan bahan ajar). */
+function app_key(): string
+{
+    $key = env('APP_KEY');
+    if ($key !== null && $key !== '') {
+        return $key;
+    }
+
+    return hash(
+        'sha256',
+        'semampai|' . (env('DB_NAME', 'semampai') ?? 'semampai') . '|' . (env('DB_PASS', '') ?? '')
+    );
+}
+
 function e(?string $value): string
 {
     return htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');

@@ -64,6 +64,107 @@ final class Hafalan
         ];
     }
 
+    public static function findForUser(int $id, int $userId): ?array
+    {
+        $stmt = Database::connection()->prepare(
+            'SELECT h.*, s.nama AS siswa_nama, s.nisn, s.kelas_id, k.nama AS kelas_nama, k.tahun_ajaran
+             FROM hafalan h
+             INNER JOIN siswa s ON s.id = h.siswa_id
+             INNER JOIN kelas k ON k.id = s.kelas_id
+             WHERE h.id = :id AND k.user_id = :user_id
+             LIMIT 1'
+        );
+        $stmt->execute(['id' => $id, 'user_id' => $userId]);
+        $row = $stmt->fetch();
+
+        return $row ?: null;
+    }
+
+    public static function update(int $id, int $userId, array $data): array
+    {
+        $existing = self::findForUser($id, $userId);
+        if (!$existing) {
+            return ['ok' => false, 'errors' => ['_form' => 'Setoran tidak ditemukan.']];
+        }
+
+        $normalized = self::normalizeAyatSelection($data);
+        $data['ayat_awal'] = $normalized['ayat_awal'];
+        $data['ayat_akhir'] = $normalized['ayat_akhir'];
+
+        $errors = self::validate($data);
+        if ($normalized['error'] !== null) {
+            $errors['ayat'] = $normalized['error'];
+        }
+        if ($errors !== []) {
+            return ['ok' => false, 'errors' => $errors];
+        }
+
+        $siswaId = (int) $data['siswa_id'];
+        $siswa = Siswa::findForUser($siswaId, $userId);
+        if (!$siswa) {
+            return ['ok' => false, 'errors' => ['siswa_id' => 'Siswa tidak ditemukan.']];
+        }
+
+        $suratNomor = (int) $data['surat_nomor'];
+        $surah = Surah::find($suratNomor);
+        if (!$surah) {
+            return ['ok' => false, 'errors' => ['surat_nomor' => 'Surat tidak valid.']];
+        }
+
+        $ayatAwal = (int) $data['ayat_awal'];
+        $ayatAkhir = (int) $data['ayat_akhir'];
+        $status = $data['status'] === 'ulang' ? 'ulang' : 'lancar';
+        $catatan = trim((string) ($data['catatan'] ?? ''));
+        if ($catatan === '') {
+            $catatan = null;
+        }
+
+        $stmt = Database::connection()->prepare(
+            'UPDATE hafalan
+             SET siswa_id = :siswa_id,
+                 surat_nomor = :surat_nomor,
+                 surat_nama = :surat_nama,
+                 ayat_awal = :ayat_awal,
+                 ayat_akhir = :ayat_akhir,
+                 status = :status,
+                 catatan = :catatan
+             WHERE id = :id AND user_id = :user_id'
+        );
+        $stmt->execute([
+            'siswa_id' => $siswaId,
+            'surat_nomor' => $suratNomor,
+            'surat_nama' => $surah['nama'],
+            'ayat_awal' => $ayatAwal,
+            'ayat_akhir' => $ayatAkhir,
+            'status' => $status,
+            'catatan' => $catatan,
+            'id' => $id,
+            'user_id' => $userId,
+        ]);
+
+        return [
+            'ok' => true,
+            'errors' => [],
+            'siswa' => $siswa,
+            'label' => self::formatLabel($surah['nama'], $ayatAwal, $ayatAkhir, $status),
+        ];
+    }
+
+    public static function delete(int $id, int $userId): bool
+    {
+        $existing = self::findForUser($id, $userId);
+        if (!$existing) {
+            return false;
+        }
+
+        $stmt = Database::connection()->prepare(
+            'DELETE FROM hafalan WHERE id = :id AND user_id = :user_id'
+        );
+        $stmt->execute(['id' => $id, 'user_id' => $userId]);
+
+        return $stmt->rowCount() > 0;
+    }
+
     public static function recentForKelas(int $kelasId, int $userId, int $limit = 8): array
     {
         $stmt = Database::connection()->prepare(

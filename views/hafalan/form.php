@@ -24,7 +24,6 @@ $prefillHint = !empty($prefillHint);
 ?>
 <section class="page-head">
   <div>
-    <h1>Setoran hafalan</h1>
     <p class="muted">Centang ayat yang disetor, lalu pilih Lancar atau Ulang.</p>
   </div>
   <div class="actions">

@@ -23,7 +23,7 @@ final class HafalanProgress
             return null;
         }
 
-        $siswaList = Siswa::allForKelas($kelasId);
+        $siswaList = Siswa::allForKelas($kelasId, $userId);
         $suratList = $target['items'];
         $suratNomor = array_map(static fn ($s) => (int) $s['surat_nomor'], $suratList);
 

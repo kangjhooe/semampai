@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS bahan_ajar (
   kelas_id INT UNSIGNED NOT NULL,
   user_id INT UNSIGNED NOT NULL,
   judul VARCHAR(200) NOT NULL,
-  sumber ENUM('upload', 'gdrive', 'youtube') NOT NULL,
+  sumber ENUM('upload', 'gdrive', 'youtube', 'onedrive', 'canva', 'vimeo') NOT NULL,
   file_path VARCHAR(255) NULL DEFAULT NULL,
   file_mime VARCHAR(100) NULL DEFAULT NULL,
   file_ext VARCHAR(10) NULL DEFAULT NULL,

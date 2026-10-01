@@ -157,6 +157,118 @@ final class Auth
         }
     }
 
+    public static function updateProfile(int $userId, array $data): array
+    {
+        $errors = self::validateProfile($data);
+        if ($errors !== []) {
+            return ['ok' => false, 'errors' => $errors];
+        }
+
+        $nama = trim((string) $data['nama']);
+        $email = strtolower(trim((string) $data['email']));
+        $noWa = only_digits((string) $data['no_wa']);
+        $pdo = Database::connection();
+
+        $checkEmail = $pdo->prepare(
+            'SELECT id FROM users WHERE email = :email AND id <> :id LIMIT 1'
+        );
+        $checkEmail->execute(['email' => $email, 'id' => $userId]);
+        if ($checkEmail->fetch()) {
+            return ['ok' => false, 'errors' => ['email' => 'Email sudah dipakai akun lain.']];
+        }
+
+        try {
+            $stmt = $pdo->prepare(
+                'UPDATE users
+                 SET nama = :nama, email = :email, no_wa = :no_wa
+                 WHERE id = :id'
+            );
+            $stmt->execute([
+                'nama' => $nama,
+                'email' => $email,
+                'no_wa' => $noWa,
+                'id' => $userId,
+            ]);
+
+            if (isset($_SESSION['user']) && (int) $_SESSION['user']['id'] === $userId) {
+                $_SESSION['user']['nama'] = $nama;
+                $_SESSION['user']['email'] = $email;
+                $_SESSION['user']['no_wa'] = $noWa;
+            }
+
+            return ['ok' => true, 'errors' => []];
+        } catch (Throwable $e) {
+            return ['ok' => false, 'errors' => ['_form' => 'Gagal memperbarui profil.']];
+        }
+    }
+
+    public static function changePassword(int $userId, array $data): array
+    {
+        $errors = [];
+        $current = (string) ($data['current_password'] ?? '');
+        $password = (string) ($data['password'] ?? '');
+        $confirmation = (string) ($data['password_confirmation'] ?? '');
+
+        if ($current === '') {
+            $errors['current_password'] = 'Isi password saat ini.';
+        }
+        if (strlen($password) < 8) {
+            $errors['password'] = 'Password baru minimal 8 karakter.';
+        }
+        if ($password !== $confirmation) {
+            $errors['password_confirmation'] = 'Konfirmasi password tidak cocok.';
+        }
+        if ($errors !== []) {
+            return ['ok' => false, 'errors' => $errors];
+        }
+
+        $pdo = Database::connection();
+        $stmt = $pdo->prepare('SELECT password_hash FROM users WHERE id = :id LIMIT 1');
+        $stmt->execute(['id' => $userId]);
+        $row = $stmt->fetch();
+
+        if (!$row || !password_verify($current, (string) $row['password_hash'])) {
+            return ['ok' => false, 'errors' => ['current_password' => 'Password saat ini salah.']];
+        }
+
+        try {
+            $update = $pdo->prepare(
+                'UPDATE users SET password_hash = :password_hash WHERE id = :id'
+            );
+            $update->execute([
+                'password_hash' => password_hash($password, PASSWORD_DEFAULT),
+                'id' => $userId,
+            ]);
+
+            return ['ok' => true, 'errors' => []];
+        } catch (Throwable $e) {
+            return ['ok' => false, 'errors' => ['_form' => 'Gagal mengubah password.']];
+        }
+    }
+
+    /** @return array<string, string> */
+    private static function validateProfile(array $data): array
+    {
+        $errors = [];
+        $nama = trim((string) ($data['nama'] ?? ''));
+        $email = strtolower(trim((string) ($data['email'] ?? '')));
+        $noWa = only_digits((string) ($data['no_wa'] ?? ''));
+
+        if ($nama === '') {
+            $errors['nama'] = 'Nama wajib diisi.';
+        }
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $errors['email'] = 'Email tidak valid.';
+        }
+
+        if (strlen($noWa) < 10 || strlen($noWa) > 15) {
+            $errors['no_wa'] = 'Nomor WA tidak valid.';
+        }
+
+        return $errors;
+    }
+
     /** @return array<string, string> */
     private static function validateRegistration(array $data): array
     {

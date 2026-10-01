@@ -8,7 +8,6 @@ $error = flash('error');
 ?>
 <section class="page-head">
   <div>
-    <h1><?= e($siswa['nama']) ?></h1>
     <p class="muted">
       NISN <?= e($siswa['nisn']) ?> ·
       <?= e($siswa['kelas_nama']) ?> (<?= e($siswa['tahun_ajaran']) ?>) ·
@@ -52,6 +51,7 @@ $error = flash('error');
             <th>Surat & ayat</th>
             <th>Status</th>
             <th>Catatan</th>
+            <th></th>
           </tr>
         </thead>
         <tbody>
@@ -69,6 +69,19 @@ $error = flash('error');
                 </span>
               </td>
               <td><?= $row['catatan'] !== null && $row['catatan'] !== '' ? e($row['catatan']) : '—' ?></td>
+              <td class="table-actions">
+                <a class="btn-icon" href="<?= e(app_url('hafalan/edit.php?id=' . $row['id'] . '&return=siswa')) ?>" title="Edit" aria-label="Edit">
+                  <?= icon('edit') ?>
+                </a>
+                <form method="post" action="<?= e(app_url('hafalan/hapus.php')) ?>" onsubmit="return confirm('Hapus setoran ini?');">
+                  <?= Csrf::field() ?>
+                  <input type="hidden" name="id" value="<?= (int) $row['id'] ?>">
+                  <input type="hidden" name="return" value="siswa">
+                  <button class="btn-icon danger" type="submit" title="Hapus" aria-label="Hapus">
+                    <?= icon('trash') ?>
+                  </button>
+                </form>
+              </td>
             </tr>
           <?php endforeach; ?>
         </tbody>

@@ -7,7 +7,6 @@ unset($_SESSION['_import_errors']);
 ?>
 <section class="page-head">
   <div>
-    <h1>Import siswa</h1>
     <p class="muted">
       Kelas <?= e($kelas['nama']) ?> ·
       <a href="<?= e(app_url('siswa/index.php?kelas_id=' . $kelas['id'])) ?>">← Daftar siswa</a>

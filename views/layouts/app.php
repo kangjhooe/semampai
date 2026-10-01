@@ -9,6 +9,34 @@ $initial = mb_strtoupper(mb_substr($appName, 0, 1));
 $scriptPath = str_replace('\\', '/', (string) ($_SERVER['SCRIPT_NAME'] ?? ''));
 $userInitial = mb_strtoupper(mb_substr((string) ($user['nama'] ?? 'U'), 0, 1));
 
+$hafalanChildren = [
+    [
+        'label' => 'Setoran',
+        'href' => app_url('hafalan/index.php'),
+        'active' => str_ends_with($scriptPath, '/hafalan/index.php'),
+        'icon' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+    ],
+    [
+        'label' => 'Riwayat',
+        'href' => app_url('hafalan/riwayat.php'),
+        'active' => (bool) preg_match('#/hafalan/(riwayat|siswa|ekspor)\.php$#', $scriptPath),
+        'icon' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10a2 2 0 0 1 2 2v14l-3-2-3 2-3-2-3 2V6a2 2 0 0 1 2-2Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 9h6M9 12h6M9 15h3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+    ],
+    [
+        'label' => 'Rekap',
+        'href' => app_url('hafalan/rekap.php'),
+        'active' => (bool) preg_match('#/hafalan/(rekap|target|rekap_ekspor)\.php$#', $scriptPath),
+        'icon' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16M7 16V9m5 7V5m5 11v-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+    ],
+];
+$hafalanOpen = false;
+foreach ($hafalanChildren as $child) {
+    if ($child['active']) {
+        $hafalanOpen = true;
+        break;
+    }
+}
+
 $navItems = [
     [
         'label' => 'Beranda',
@@ -36,21 +64,10 @@ $navItems = [
     ],
     [
         'label' => 'Hafalan',
-        'href' => app_url('hafalan/index.php'),
-        'active' => str_ends_with($scriptPath, '/hafalan/index.php'),
+        'active' => $hafalanOpen,
+        'open' => $hafalanOpen,
         'icon' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4.5h9.5A2.5 2.5 0 0 1 18 7v13.5L12.5 17 7 20.5V7A2.5 2.5 0 0 1 9.5 4.5H6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 9h6M9 12h4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
-    ],
-    [
-        'label' => 'Riwayat',
-        'href' => app_url('hafalan/riwayat.php'),
-        'active' => (bool) preg_match('#/hafalan/(riwayat|siswa|ekspor)\.php$#', $scriptPath),
-        'icon' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10a2 2 0 0 1 2 2v14l-3-2-3 2-3-2-3 2V6a2 2 0 0 1 2-2Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 9h6M9 12h6M9 15h3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
-    ],
-    [
-        'label' => 'Rekap',
-        'href' => app_url('hafalan/rekap.php'),
-        'active' => (bool) preg_match('#/hafalan/(rekap|target|rekap_ekspor)\.php$#', $scriptPath),
-        'icon' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16M7 16V9m5 7V5m5 11v-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+        'children' => $hafalanChildren,
     ],
 ];
 ?>
@@ -83,25 +100,61 @@ $navItems = [
       <nav class="sidebar-nav">
         <p class="sidebar-label">Menu</p>
         <?php foreach ($navItems as $item): ?>
-          <a
-            class="sidebar-link<?= $item['active'] ? ' is-active' : '' ?>"
-            href="<?= e($item['href']) ?>"
-            <?= $item['active'] ? 'aria-current="page"' : '' ?>
-          >
-            <span class="sidebar-icon"><?= $item['icon'] ?></span>
-            <span><?= e($item['label']) ?></span>
-          </a>
+          <?php if (!empty($item['children'])): ?>
+            <?php
+              $groupId = 'nav-' . preg_replace('/[^a-z0-9]+/i', '-', strtolower($item['label']));
+              $isOpen = !empty($item['open']);
+            ?>
+            <div class="sidebar-dropdown<?= $isOpen ? ' is-open' : '' ?>" data-sidebar-dropdown>
+              <button
+                type="button"
+                class="sidebar-link sidebar-dropdown-trigger<?= !empty($item['active']) ? ' is-active' : '' ?>"
+                aria-expanded="<?= $isOpen ? 'true' : 'false' ?>"
+                aria-controls="<?= e($groupId) ?>"
+                data-sidebar-dropdown-trigger
+              >
+                <span class="sidebar-icon"><?= $item['icon'] ?></span>
+                <span class="sidebar-dropdown-label"><?= e($item['label']) ?></span>
+                <span class="sidebar-dropdown-chevron" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="m7 10 5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </span>
+              </button>
+              <div class="sidebar-dropdown-panel" id="<?= e($groupId) ?>">
+                <div class="sidebar-dropdown-menu">
+                  <?php foreach ($item['children'] as $child): ?>
+                    <a
+                      class="sidebar-dropdown-item<?= $child['active'] ? ' is-active' : '' ?>"
+                      href="<?= e($child['href']) ?>"
+                      <?= $child['active'] ? 'aria-current="page"' : '' ?>
+                    >
+                      <span class="sidebar-dropdown-item-icon"><?= $child['icon'] ?></span>
+                      <span><?= e($child['label']) ?></span>
+                    </a>
+                  <?php endforeach; ?>
+                </div>
+              </div>
+            </div>
+          <?php else: ?>
+            <a
+              class="sidebar-link<?= $item['active'] ? ' is-active' : '' ?>"
+              href="<?= e($item['href']) ?>"
+              <?= $item['active'] ? 'aria-current="page"' : '' ?>
+            >
+              <span class="sidebar-icon"><?= $item['icon'] ?></span>
+              <span><?= e($item['label']) ?></span>
+            </a>
+          <?php endif; ?>
         <?php endforeach; ?>
       </nav>
 
       <div class="sidebar-footer">
-        <div class="sidebar-user">
+        <a class="sidebar-user" href="<?= e(app_url('profil.php')) ?>" title="Profil akun">
           <span class="sidebar-avatar"><?= e($userInitial) ?></span>
           <div class="sidebar-user-meta">
             <strong><?= e($user['nama'] ?? '') ?></strong>
             <span><?= e($user['nama_sekolah'] ?? '') ?></span>
           </div>
-        </div>
+        </a>
         <a class="sidebar-link sidebar-logout" href="<?= e(app_url('logout.php')) ?>">
           <span class="sidebar-icon">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 5H6.8A1.8 1.8 0 0 0 5 6.8v10.4A1.8 1.8 0 0 0 6.8 19H10M15 16l4-4-4-4M19 12H10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -133,37 +186,93 @@ $navItems = [
       var openBtn = document.querySelector('[data-sidebar-open]');
       var closeTargets = document.querySelectorAll('[data-sidebar-close]');
       var media = window.matchMedia('(min-width: 960px)');
+      var storageKey = 'semampai.sidebarCollapsed';
 
-      function setOpen(open) {
+      function isDesktop() {
+        return media.matches;
+      }
+
+      function syncToggle(expanded) {
+        if (!openBtn) return;
+        openBtn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+        openBtn.setAttribute('aria-label', expanded ? 'Tutup menu' : 'Buka menu');
+      }
+
+      function setMobileOpen(open) {
         body.classList.toggle('sidebar-open', open);
-        if (openBtn) openBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        syncToggle(open);
+      }
+
+      function setDesktopCollapsed(collapsed) {
+        body.classList.toggle('sidebar-collapsed', collapsed);
+        try {
+          localStorage.setItem(storageKey, collapsed ? '1' : '0');
+        } catch (err) {}
+        syncToggle(!collapsed);
+      }
+
+      function toggleSidebar() {
+        if (isDesktop()) {
+          setDesktopCollapsed(!body.classList.contains('sidebar-collapsed'));
+        } else {
+          setMobileOpen(!body.classList.contains('sidebar-open'));
+        }
       }
 
       if (openBtn) {
-        openBtn.addEventListener('click', function () {
-          setOpen(!body.classList.contains('sidebar-open'));
-        });
+        openBtn.addEventListener('click', toggleSidebar);
       }
 
       closeTargets.forEach(function (el) {
         el.addEventListener('click', function () {
-          setOpen(false);
+          if (!isDesktop()) setMobileOpen(false);
         });
       });
 
       document.addEventListener('keydown', function (event) {
-        if (event.key === 'Escape') setOpen(false);
+        if (event.key === 'Escape' && !isDesktop()) setMobileOpen(false);
       });
 
-      function syncDesktop() {
-        if (media.matches) setOpen(false);
+      function syncBreakpoint() {
+        body.classList.remove('sidebar-open');
+        if (isDesktop()) {
+          var saved = null;
+          try {
+            saved = localStorage.getItem(storageKey);
+          } catch (err) {}
+          setDesktopCollapsed(saved === '1');
+        } else {
+          body.classList.remove('sidebar-collapsed');
+          syncToggle(false);
+        }
       }
 
+      syncBreakpoint();
+
       if (media.addEventListener) {
-        media.addEventListener('change', syncDesktop);
+        media.addEventListener('change', syncBreakpoint);
       } else if (media.addListener) {
-        media.addListener(syncDesktop);
+        media.addListener(syncBreakpoint);
       }
+
+      document.querySelectorAll('[data-sidebar-dropdown]').forEach(function (dropdown) {
+        var trigger = dropdown.querySelector('[data-sidebar-dropdown-trigger]');
+        if (!trigger) return;
+
+        trigger.addEventListener('click', function () {
+          var willOpen = !dropdown.classList.contains('is-open');
+
+          document.querySelectorAll('[data-sidebar-dropdown].is-open').forEach(function (other) {
+            if (other === dropdown) return;
+            other.classList.remove('is-open');
+            var otherTrigger = other.querySelector('[data-sidebar-dropdown-trigger]');
+            if (otherTrigger) otherTrigger.setAttribute('aria-expanded', 'false');
+          });
+
+          dropdown.classList.toggle('is-open', willOpen);
+          trigger.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+        });
+      });
     })();
   </script>
 </body>

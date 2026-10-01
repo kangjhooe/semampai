@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 final class Siswa
 {
-    public static function allForKelas(int $kelasId): array
+    public static function allForKelas(int $kelasId, int $userId): array
     {
         $stmt = Database::connection()->prepare(
-            'SELECT * FROM siswa WHERE kelas_id = :kelas_id ORDER BY nama ASC'
+            'SELECT s.*
+             FROM siswa s
+             INNER JOIN kelas k ON k.id = s.kelas_id
+             WHERE s.kelas_id = :kelas_id AND k.user_id = :user_id
+             ORDER BY s.nama ASC'
         );
-        $stmt->execute(['kelas_id' => $kelasId]);
+        $stmt->execute(['kelas_id' => $kelasId, 'user_id' => $userId]);
 
         return $stmt->fetchAll();
     }
@@ -29,8 +33,12 @@ final class Siswa
         return $row ?: null;
     }
 
-    public static function create(int $kelasId, array $data): array
+    public static function create(int $kelasId, int $userId, array $data): array
     {
+        if (!Kelas::findForUser($kelasId, $userId)) {
+            return ['ok' => false, 'errors' => ['_form' => 'Kelas tidak ditemukan.']];
+        }
+
         $errors = self::validate($data);
         if ($errors !== []) {
             return ['ok' => false, 'errors' => $errors];
@@ -77,9 +85,10 @@ final class Siswa
 
         try {
             $stmt = Database::connection()->prepare(
-                'UPDATE siswa
-                 SET nama = :nama, nisn = :nisn, tempat_lahir = :tempat_lahir, tanggal_lahir = :tanggal_lahir
-                 WHERE id = :id'
+                'UPDATE siswa s
+                 INNER JOIN kelas k ON k.id = s.kelas_id
+                 SET s.nama = :nama, s.nisn = :nisn, s.tempat_lahir = :tempat_lahir, s.tanggal_lahir = :tanggal_lahir
+                 WHERE s.id = :id AND k.user_id = :user_id'
             );
             $stmt->execute([
                 'nama' => trim($data['nama']),
@@ -87,6 +96,7 @@ final class Siswa
                 'tempat_lahir' => trim($data['tempat_lahir']),
                 'tanggal_lahir' => $data['tanggal_lahir'],
                 'id' => $id,
+                'user_id' => $userId,
             ]);
 
             return ['ok' => true, 'errors' => []];
@@ -99,6 +109,43 @@ final class Siswa
         }
     }
 
+    public static function pindahKelas(int $id, int $userId, int $kelasIdBaru): array
+    {
+        $siswa = self::findForUser($id, $userId);
+        if (!$siswa) {
+            return ['ok' => false, 'errors' => ['_form' => 'Siswa tidak ditemukan.']];
+        }
+
+        if ((int) $siswa['kelas_id'] === $kelasIdBaru) {
+            return ['ok' => true, 'errors' => [], 'kelas_id' => $kelasIdBaru];
+        }
+
+        $kelasBaru = Kelas::findForUser($kelasIdBaru, $userId);
+        if (!$kelasBaru) {
+            return ['ok' => false, 'errors' => ['kelas_id' => 'Kelas tujuan tidak valid.']];
+        }
+
+        $stmt = Database::connection()->prepare(
+            'UPDATE siswa s
+             INNER JOIN kelas k ON k.id = s.kelas_id
+             SET s.kelas_id = :kelas_id
+             WHERE s.id = :id AND k.user_id = :user_id'
+        );
+        $stmt->execute([
+            'kelas_id' => $kelasIdBaru,
+            'id' => $id,
+            'user_id' => $userId,
+        ]);
+
+        return [
+            'ok' => true,
+            'errors' => [],
+            'kelas_id' => $kelasIdBaru,
+            'kelas_nama' => $kelasBaru['nama'],
+            'tahun_ajaran' => $kelasBaru['tahun_ajaran'],
+        ];
+    }
+
     public static function delete(int $id, int $userId): bool
     {
         $siswa = self::findForUser($id, $userId);
@@ -106,8 +153,12 @@ final class Siswa
             return false;
         }
 
-        $stmt = Database::connection()->prepare('DELETE FROM siswa WHERE id = :id');
-        $stmt->execute(['id' => $id]);
+        $stmt = Database::connection()->prepare(
+            'DELETE s FROM siswa s
+             INNER JOIN kelas k ON k.id = s.kelas_id
+             WHERE s.id = :id AND k.user_id = :user_id'
+        );
+        $stmt->execute(['id' => $id, 'user_id' => $userId]);
 
         return $stmt->rowCount() > 0;
     }

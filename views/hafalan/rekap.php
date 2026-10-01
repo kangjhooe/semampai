@@ -10,7 +10,6 @@ $qs = $kelas ? ('kelas_id=' . (int) $kelas['id']) : '';
 ?>
 <section class="page-head">
   <div>
-    <h1>Rekap target hafalan</h1>
     <p class="muted">
       <?php if ($matrix): ?>
         <?= e($matrix['target']['judul']) ?> · <?= count($matrix['surat']) ?> surat wajib

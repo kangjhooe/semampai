@@ -21,7 +21,7 @@ if ($kelasId > 0 && !$kelas) {
     redirect('hafalan/index.php');
 }
 
-$siswaList = $kelas ? Siswa::allForKelas((int) $kelas['id']) : [];
+$siswaList = $kelas ? Siswa::allForKelas((int) $kelas['id'], $userId) : [];
 
 // Preferensi tampilan: arab | arab_terjemah
 if (isset($_GET['tampil']) && in_array($_GET['tampil'], ['arab', 'arab_terjemah'], true)) {

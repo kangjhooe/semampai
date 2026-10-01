@@ -31,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$file || ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
         $errors['_form'] = 'Pilih file Excel terlebih dahulu.';
     } else {
-        $result = SiswaImporter::import($kelasId, $file['tmp_name'], $file['name']);
+        $result = SiswaImporter::import($kelasId, $userId, $file['tmp_name'], $file['name']);
         $_SESSION['_import_errors'] = array_slice($result['errors'], 0, 20);
 
         if ($result['imported'] > 0) {

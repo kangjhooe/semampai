@@ -8,7 +8,6 @@ $importErrors = $importErrors ?? [];
 ?>
 <section class="page-head">
   <div>
-    <h1>Siswa · <?= e($kelas['nama']) ?></h1>
     <p class="muted">Tahun ajaran <?= e($kelas['tahun_ajaran']) ?> · <a href="<?= e(app_url('siswa/index.php')) ?>">← Pilih kelas</a></p>
   </div>
   <div class="actions">

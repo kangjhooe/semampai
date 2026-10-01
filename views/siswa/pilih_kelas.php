@@ -5,7 +5,6 @@ $error = flash('error');
 ?>
 <section class="page-head">
   <div>
-    <h1>Pengelola siswa</h1>
     <p class="muted">Pilih kelas untuk melihat, menambah, atau mengimpor siswa.</p>
   </div>
 </section>

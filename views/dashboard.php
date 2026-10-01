@@ -92,7 +92,7 @@ $hasKelas = $jumlahKelas > 0;
       </span>
       <span class="dash-action-copy">
         <strong>Bahan ajar</strong>
-        <span>Upload, Drive, atau YouTube</span>
+        <span>Upload, Drive, OneDrive, Canva, YouTube, Vimeo</span>
       </span>
     </a>
 

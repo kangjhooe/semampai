@@ -7,30 +7,33 @@ require_once __DIR__ . '/../config/bootstrap.php';
 Auth::requireLogin();
 $user = Auth::user();
 $userId = (int) $user['id'];
-$kelasId = (int) ($_GET['kelas_id'] ?? 0);
 
-if ($kelasId <= 0) {
-    $daftarKelas = Kelas::allForUser($userId);
-    view('bahan/pilih_kelas', [
-        'title' => 'Bahan Ajar',
-        'user' => $user,
-        'daftarKelas' => $daftarKelas,
-    ], 'app');
-    exit;
-}
+$daftarKelas = Kelas::allForUser($userId);
+$filterKelasId = (int) ($_GET['kelas_id'] ?? 0);
+$filterSumber = (string) ($_GET['sumber'] ?? '');
+$filterQ = trim((string) ($_GET['q'] ?? ''));
 
-$kelas = Kelas::findForUser($kelasId, $userId);
-
-if (!$kelas) {
+if ($filterKelasId > 0 && !Kelas::findForUser($filterKelasId, $userId)) {
     flash('error', 'Kelas tidak ditemukan.');
     redirect('bahan/index.php');
 }
 
-$daftar = BahanAjar::allForKelas($kelasId, $userId);
+if ($filterSumber !== '' && !in_array($filterSumber, BahanAjar::sumberList(), true)) {
+    $filterSumber = '';
+}
+
+$daftar = BahanAjar::allForUser($userId, [
+    'kelas_id' => $filterKelasId,
+    'sumber' => $filterSumber,
+    'q' => $filterQ,
+]);
 
 view('bahan/index', [
-    'title' => 'Bahan Ajar · ' . $kelas['nama'],
+    'title' => 'Bahan Ajar',
     'user' => $user,
-    'kelas' => $kelas,
+    'daftarKelas' => $daftarKelas,
     'daftar' => $daftar,
+    'filterKelasId' => $filterKelasId,
+    'filterSumber' => $filterSumber,
+    'filterQ' => $filterQ,
 ], 'app');

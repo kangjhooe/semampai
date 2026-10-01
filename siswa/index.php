@@ -26,7 +26,7 @@ if (!$kelas) {
     redirect('siswa/index.php');
 }
 
-$siswa = Siswa::allForKelas($kelasId);
+$siswa = Siswa::allForKelas($kelasId, $userId);
 $importErrors = $_SESSION['_import_errors'] ?? [];
 unset($_SESSION['_import_errors']);
 

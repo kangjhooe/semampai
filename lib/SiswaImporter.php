@@ -39,8 +39,17 @@ final class SiswaImporter
     /**
      * @return array{ok: bool, imported: int, skipped: int, errors: list<string>}
      */
-    public static function import(int $kelasId, string $tmpPath, string $originalName): array
+    public static function import(int $kelasId, int $userId, string $tmpPath, string $originalName): array
     {
+        if (!Kelas::findForUser($kelasId, $userId)) {
+            return [
+                'ok' => false,
+                'imported' => 0,
+                'skipped' => 0,
+                'errors' => ['Kelas tidak ditemukan.'],
+            ];
+        }
+
         $ext = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
         if (!in_array($ext, ['xlsx', 'xls', 'csv'], true)) {
             return [
@@ -122,7 +131,7 @@ final class SiswaImporter
                 continue;
             }
 
-            $result = Siswa::create($kelasId, $data);
+            $result = Siswa::create($kelasId, $userId, $data);
             if (!$result['ok']) {
                 $skipped++;
                 $errors[] = "Baris {$line}: " . implode(' ', array_values($result['errors']));

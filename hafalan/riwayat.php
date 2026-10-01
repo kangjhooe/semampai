@@ -26,7 +26,7 @@ if (!in_array($status, ['', 'lancar', 'ulang'], true)) {
     $status = '';
 }
 
-$siswaList = $kelas ? Siswa::allForKelas((int) $kelas['id']) : [];
+$siswaList = $kelas ? Siswa::allForKelas((int) $kelas['id'], $userId) : [];
 if ($siswaId > 0) {
     $owned = false;
     foreach ($siswaList as $s) {
