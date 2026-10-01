@@ -18,8 +18,8 @@ $filterStatus = (string) ($filterStatus ?? '');
   </div>
   <div class="actions">
     <?php if ($kelas): ?>
-      <a class="btn btn-ghost" href="<?= e(app_url('hafalan_ekspor.php?kelas_id=' . $kelas['id'])) ?>">Ekspor Excel</a>
-      <a class="btn btn-primary" href="<?= e(app_url('hafalan.php?kelas_id=' . $kelas['id'])) ?>">Setor lagi</a>
+      <a class="btn btn-ghost" href="<?= e(app_url('hafalan/ekspor.php?kelas_id=' . $kelas['id'])) ?>">Ekspor Excel</a>
+      <a class="btn btn-primary" href="<?= e(app_url('hafalan/index.php?kelas_id=' . $kelas['id'])) ?>">Setor lagi</a>
     <?php endif; ?>
   </div>
 </section>
@@ -29,10 +29,10 @@ $filterStatus = (string) ($filterStatus ?? '');
 
 <?php if ($daftarKelas === []): ?>
   <section class="card">
-    <p class="muted">Belum ada kelas. <a href="<?= e(app_url('kelas.php')) ?>">Buat kelas dulu</a>.</p>
+    <p class="muted">Belum ada kelas. <a href="<?= e(app_url('kelas/index.php')) ?>">Buat kelas dulu</a>.</p>
   </section>
 <?php else: ?>
-  <form class="card filter-bar" method="get" action="<?= e(app_url('hafalan_riwayat.php')) ?>">
+  <form class="card filter-bar" method="get" action="<?= e(app_url('hafalan/riwayat.php')) ?>">
     <div class="grid-3">
       <div class="field">
         <label for="kelas_id">Kelas</label>
@@ -112,7 +112,7 @@ $filterStatus = (string) ($filterStatus ?? '');
                 <td><?= (int) $row['total_lancar'] ?></td>
                 <td><?= (int) $row['total_ulang'] ?></td>
                 <td class="table-actions">
-                  <a class="btn-icon" href="<?= e(app_url('hafalan_siswa.php?siswa_id=' . $row['id'])) ?>" title="Detail" aria-label="Detail">
+                  <a class="btn-icon" href="<?= e(app_url('hafalan/siswa.php?siswa_id=' . $row['id'])) ?>" title="Detail" aria-label="Detail">
                     <?= icon('eye') ?>
                   </a>
                 </td>
@@ -147,7 +147,7 @@ $filterStatus = (string) ($filterStatus ?? '');
                 <td class="col-num"><?= $i + 1 ?></td>
                 <td><?= e(date('d/m/Y H:i', strtotime($row['created_at']))) ?></td>
                 <td>
-                  <a href="<?= e(app_url('hafalan_siswa.php?siswa_id=' . $row['siswa_id'])) ?>">
+                  <a href="<?= e(app_url('hafalan/siswa.php?siswa_id=' . $row['siswa_id'])) ?>">
                     <?= e($row['siswa_nama']) ?>
                   </a>
                 </td>

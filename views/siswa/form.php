@@ -10,7 +10,7 @@ $isEdit = $siswa !== null;
     <h1><?= $isEdit ? 'Edit siswa' : 'Tambah siswa' ?></h1>
     <p class="muted">
       Kelas <?= e($kelas['nama']) ?> ·
-      <a href="<?= e(app_url('siswa.php?kelas_id=' . $kelas['id'])) ?>">← Daftar siswa</a>
+      <a href="<?= e(app_url('siswa/index.php?kelas_id=' . $kelas['id'])) ?>">← Daftar siswa</a>
     </p>
   </div>
 </section>
@@ -20,7 +20,7 @@ $isEdit = $siswa !== null;
     <div class="alert error"><?= e($errors['_form']) ?></div>
   <?php endif; ?>
 
-  <form class="stack" method="post" action="<?= e(app_url('siswa_form.php?kelas_id=' . $kelas['id'] . ($isEdit ? '&id=' . $siswa['id'] : ''))) ?>">
+  <form class="stack" method="post" action="<?= e(app_url('siswa/form.php?kelas_id=' . $kelas['id'] . ($isEdit ? '&id=' . $siswa['id'] : ''))) ?>">
     <?= Csrf::field() ?>
     <input type="hidden" name="kelas_id" value="<?= (int) $kelas['id'] ?>">
 
@@ -52,7 +52,7 @@ $isEdit = $siswa !== null;
 
     <div class="actions">
       <button class="btn btn-primary" type="submit"><?= $isEdit ? 'Simpan perubahan' : 'Tambah siswa' ?></button>
-      <a class="btn btn-ghost" href="<?= e(app_url('siswa.php?kelas_id=' . $kelas['id'])) ?>">Batal</a>
+      <a class="btn btn-ghost" href="<?= e(app_url('siswa/index.php?kelas_id=' . $kelas['id'])) ?>">Batal</a>
     </div>
   </form>
 </section>

@@ -18,7 +18,7 @@ $selectedMap = array_fill_keys($selected, true);
   </div>
   <div class="actions">
     <?php if ($kelas): ?>
-      <a class="btn btn-ghost" href="<?= e(app_url('hafalan_rekap.php?kelas_id=' . $kelas['id'])) ?>">Lihat rekap</a>
+      <a class="btn btn-ghost" href="<?= e(app_url('hafalan/rekap.php?kelas_id=' . $kelas['id'])) ?>">Lihat rekap</a>
     <?php endif; ?>
   </div>
 </section>
@@ -29,7 +29,7 @@ $selectedMap = array_fill_keys($selected, true);
 <?php if ($daftarKelas === []): ?>
   <section class="card"><p class="muted">Belum ada kelas.</p></section>
 <?php else: ?>
-  <form class="card filter-bar" method="get" action="<?= e(app_url('hafalan_target.php')) ?>">
+  <form class="card filter-bar" method="get" action="<?= e(app_url('hafalan/target.php')) ?>">
     <div class="field">
       <label for="kelas_id">Kelas</label>
       <select id="kelas_id" name="kelas_id" onchange="this.form.submit()">
@@ -49,12 +49,12 @@ $selectedMap = array_fill_keys($selected, true);
       <?php endif; ?>
 
       <div class="actions">
-        <a class="btn btn-ghost btn-sm" href="<?= e(app_url('hafalan_target.php?kelas_id=' . $kelas['id'] . '&template=juz30')) ?>">
+        <a class="btn btn-ghost btn-sm" href="<?= e(app_url('hafalan/target.php?kelas_id=' . $kelas['id'] . '&template=juz30')) ?>">
           Template: 10 surat Juz 30
         </a>
       </div>
 
-      <form class="stack" method="post" action="<?= e(app_url('hafalan_target.php?kelas_id=' . $kelas['id'])) ?>">
+      <form class="stack" method="post" action="<?= e(app_url('hafalan/target.php?kelas_id=' . $kelas['id'])) ?>">
         <?= Csrf::field() ?>
         <input type="hidden" name="kelas_id" value="<?= (int) $kelas['id'] ?>">
 

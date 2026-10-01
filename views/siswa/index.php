@@ -9,11 +9,11 @@ $importErrors = $importErrors ?? [];
 <section class="page-head">
   <div>
     <h1>Siswa · <?= e($kelas['nama']) ?></h1>
-    <p class="muted">Tahun ajaran <?= e($kelas['tahun_ajaran']) ?> · <a href="<?= e(app_url('siswa.php')) ?>">← Pilih kelas</a></p>
+    <p class="muted">Tahun ajaran <?= e($kelas['tahun_ajaran']) ?> · <a href="<?= e(app_url('siswa/index.php')) ?>">← Pilih kelas</a></p>
   </div>
   <div class="actions">
-    <a class="btn btn-ghost" href="<?= e(app_url('siswa_import.php?kelas_id=' . $kelas['id'])) ?>">Import Excel</a>
-    <a class="btn btn-primary" href="<?= e(app_url('siswa_form.php?kelas_id=' . $kelas['id'])) ?>">Tambah siswa</a>
+    <a class="btn btn-ghost" href="<?= e(app_url('siswa/import.php?kelas_id=' . $kelas['id'])) ?>">Import Excel</a>
+    <a class="btn btn-primary" href="<?= e(app_url('siswa/form.php?kelas_id=' . $kelas['id'])) ?>">Tambah siswa</a>
   </div>
 </section>
 
@@ -56,10 +56,10 @@ $importErrors = $importErrors ?? [];
               <td><?= e($row['tempat_lahir']) ?></td>
               <td><?= e(date('d/m/Y', strtotime($row['tanggal_lahir']))) ?></td>
               <td class="table-actions">
-                <a class="btn-icon" href="<?= e(app_url('siswa_form.php?kelas_id=' . $kelas['id'] . '&id=' . $row['id'])) ?>" title="Edit" aria-label="Edit">
+                <a class="btn-icon" href="<?= e(app_url('siswa/form.php?kelas_id=' . $kelas['id'] . '&id=' . $row['id'])) ?>" title="Edit" aria-label="Edit">
                   <?= icon('edit') ?>
                 </a>
-                <form method="post" action="<?= e(app_url('siswa_hapus.php')) ?>" onsubmit="return confirm('Hapus siswa ini?');">
+                <form method="post" action="<?= e(app_url('siswa/hapus.php')) ?>" onsubmit="return confirm('Hapus siswa ini?');">
                   <?= Csrf::field() ?>
                   <input type="hidden" name="id" value="<?= (int) $row['id'] ?>">
                   <input type="hidden" name="kelas_id" value="<?= (int) $kelas['id'] ?>">

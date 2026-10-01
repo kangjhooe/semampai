@@ -6,7 +6,7 @@ $errors = $errors ?? [];
 <section class="page-head">
   <div>
     <h1>Edit kelas</h1>
-    <p class="muted"><a href="<?= e(app_url('kelas.php')) ?>">← Kembali ke pengelola kelas</a></p>
+    <p class="muted"><a href="<?= e(app_url('kelas/index.php')) ?>">← Kembali ke pengelola kelas</a></p>
   </div>
 </section>
 
@@ -14,7 +14,7 @@ $errors = $errors ?? [];
   <?php if (!empty($errors['_form'])): ?>
     <div class="alert error"><?= e($errors['_form']) ?></div>
   <?php endif; ?>
-  <form class="stack" method="post" action="<?= e(app_url('kelas_edit.php?id=' . $kelas['id'])) ?>">
+  <form class="stack" method="post" action="<?= e(app_url('kelas/edit.php?id=' . $kelas['id'])) ?>">
     <?= Csrf::field() ?>
     <div class="field">
       <label for="nama">Nama kelas</label>
@@ -28,7 +28,7 @@ $errors = $errors ?? [];
     </div>
     <div class="actions">
       <button class="btn btn-primary" type="submit">Simpan</button>
-      <a class="btn btn-ghost" href="<?= e(app_url('kelas.php')) ?>">Batal</a>
+      <a class="btn btn-ghost" href="<?= e(app_url('kelas/index.php')) ?>">Batal</a>
     </div>
   </form>
 </section>

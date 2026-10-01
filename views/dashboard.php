@@ -56,7 +56,7 @@ $hasKelas = $jumlahKelas > 0;
   </div>
 
   <div class="dash-actions">
-    <a class="dash-action dash-action-primary" href="<?= e(app_url('hafalan.php')) ?>">
+    <a class="dash-action dash-action-primary" href="<?= e(app_url('hafalan/index.php')) ?>">
       <span class="dash-action-icon" aria-hidden="true">
         <svg viewBox="0 0 24 24"><path d="M6 4.5h9.5A2.5 2.5 0 0 1 18 7v13.5L12.5 17 7 20.5V7A2.5 2.5 0 0 1 9.5 4.5H6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 9h6M9 12h4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
       </span>
@@ -66,7 +66,7 @@ $hasKelas = $jumlahKelas > 0;
       </span>
     </a>
 
-    <a class="dash-action" href="<?= e(app_url('kelas.php')) ?>">
+    <a class="dash-action" href="<?= e(app_url('kelas/index.php')) ?>">
       <span class="dash-action-icon" aria-hidden="true">
         <svg viewBox="0 0 24 24"><path d="M4 19V7.8A1.8 1.8 0 0 1 5.8 6H12v13H5.8A1.8 1.8 0 0 1 4 17.2V19Zm8-13h6.2A1.8 1.8 0 0 1 20 7.8v9.4A1.8 1.8 0 0 1 18.2 19H12V6Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 10h2M8 13h2M14 10h2M14 13h2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
       </span>
@@ -76,7 +76,7 @@ $hasKelas = $jumlahKelas > 0;
       </span>
     </a>
 
-    <a class="dash-action" href="<?= e(app_url('siswa.php')) ?>">
+    <a class="dash-action" href="<?= e(app_url('siswa/index.php')) ?>">
       <span class="dash-action-icon" aria-hidden="true">
         <svg viewBox="0 0 24 24"><path d="M12 12a3.5 3.5 0 1 0-3.5-3.5A3.5 3.5 0 0 0 12 12Zm-7.5 8a7.5 7.5 0 0 1 15 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M18.5 8.5a2.5 2.5 0 1 0-0.3-4.98M20.8 15.2a5.2 5.2 0 0 0-3.1-2.55" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
       </span>
@@ -86,7 +86,17 @@ $hasKelas = $jumlahKelas > 0;
       </span>
     </a>
 
-    <a class="dash-action" href="<?= e(app_url('hafalan_riwayat.php')) ?>">
+    <a class="dash-action" href="<?= e(app_url('bahan/index.php')) ?>">
+      <span class="dash-action-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4H14v16H6.5A2.5 2.5 0 0 1 4 17.5v-11Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 4h3.5A2.5 2.5 0 0 1 20 6.5v11A2.5 2.5 0 0 1 17.5 20H14V4Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 8h3M8 11h3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </span>
+      <span class="dash-action-copy">
+        <strong>Bahan ajar</strong>
+        <span>Upload, Drive, atau YouTube</span>
+      </span>
+    </a>
+
+    <a class="dash-action" href="<?= e(app_url('hafalan/riwayat.php')) ?>">
       <span class="dash-action-icon" aria-hidden="true">
         <svg viewBox="0 0 24 24"><path d="M7 4h10a2 2 0 0 1 2 2v14l-3-2-3 2-3-2-3 2V6a2 2 0 0 1 2-2Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 9h6M9 12h6M9 15h3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
       </span>
@@ -103,7 +113,7 @@ $hasKelas = $jumlahKelas > 0;
     <h2 class="card-title">Belum ada kelas</h2>
     <p class="muted">Buat kelas pertama, lalu isi daftar siswa. Setelah itu setoran hafalan siap dipakai.</p>
     <div class="actions">
-      <a class="btn btn-primary" href="<?= e(app_url('kelas.php')) ?>">Buat kelas</a>
+      <a class="btn btn-primary" href="<?= e(app_url('kelas/index.php')) ?>">Buat kelas</a>
     </div>
   </section>
 <?php else: ?>
@@ -112,14 +122,14 @@ $hasKelas = $jumlahKelas > 0;
       <div class="dash-section-head compact">
         <h2 class="card-title">Aktivitas terbaru</h2>
         <?php if ($recent !== []): ?>
-          <a class="dash-link" href="<?= e(app_url('hafalan_riwayat.php')) ?>">Lihat semua</a>
+          <a class="dash-link" href="<?= e(app_url('hafalan/riwayat.php')) ?>">Lihat semua</a>
         <?php endif; ?>
       </div>
 
       <?php if ($recent === []): ?>
         <p class="muted">Belum ada setoran. Mulai dari halaman hafalan.</p>
         <div class="actions">
-          <a class="btn btn-primary" href="<?= e(app_url('hafalan.php')) ?>">Catat setoran</a>
+          <a class="btn btn-primary" href="<?= e(app_url('hafalan/index.php')) ?>">Catat setoran</a>
         </div>
       <?php else: ?>
         <ul class="dash-feed">
@@ -150,13 +160,13 @@ $hasKelas = $jumlahKelas > 0;
     <section class="card stack">
       <div class="dash-section-head compact">
         <h2 class="card-title">Kelas Anda</h2>
-        <a class="dash-link" href="<?= e(app_url('kelas.php')) ?>">Kelola</a>
+        <a class="dash-link" href="<?= e(app_url('kelas/index.php')) ?>">Kelola</a>
       </div>
 
       <ul class="dash-kelas-list">
         <?php foreach (array_slice($daftarKelas, 0, 5) as $kelas): ?>
           <li>
-            <a href="<?= e(app_url('siswa.php?kelas_id=' . $kelas['id'])) ?>">
+            <a href="<?= e(app_url('siswa/index.php?kelas_id=' . $kelas['id'])) ?>">
               <span>
                 <strong><?= e($kelas['nama']) ?></strong>
                 <span class="muted"><?= e($kelas['tahun_ajaran']) ?></span>

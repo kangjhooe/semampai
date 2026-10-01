@@ -12,11 +12,11 @@ $error = flash('error');
     <p class="muted">
       NISN <?= e($siswa['nisn']) ?> ·
       <?= e($siswa['kelas_nama']) ?> (<?= e($siswa['tahun_ajaran']) ?>) ·
-      <a href="<?= e(app_url('hafalan_riwayat.php?kelas_id=' . $siswa['kelas_id'])) ?>">← Riwayat kelas</a>
+      <a href="<?= e(app_url('hafalan/riwayat.php?kelas_id=' . $siswa['kelas_id'])) ?>">← Riwayat kelas</a>
     </p>
   </div>
   <div class="actions">
-    <a class="btn btn-primary" href="<?= e(app_url('hafalan.php?kelas_id=' . $siswa['kelas_id'])) ?>">Setor lagi</a>
+    <a class="btn btn-primary" href="<?= e(app_url('hafalan/index.php?kelas_id=' . $siswa['kelas_id'])) ?>">Setor lagi</a>
   </div>
 </section>
 

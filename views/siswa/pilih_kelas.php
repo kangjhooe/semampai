@@ -17,7 +17,7 @@ $error = flash('error');
   <?php if ($daftarKelas === []): ?>
     <p class="muted">
       Belum ada kelas.
-      Buat kelas dulu di <a href="<?= e(app_url('kelas.php')) ?>">pengelola kelas</a>.
+      Buat kelas dulu di <a href="<?= e(app_url('kelas/index.php')) ?>">pengelola kelas</a>.
     </p>
   <?php else: ?>
     <div class="table-wrap">
@@ -39,7 +39,7 @@ $error = flash('error');
               <td><?= e($row['tahun_ajaran']) ?></td>
               <td><?= (int) $row['jumlah_siswa'] ?></td>
               <td class="table-actions">
-                <a class="btn-icon primary" href="<?= e(app_url('siswa.php?kelas_id=' . $row['id'])) ?>" title="Kelola siswa" aria-label="Kelola siswa">
+                <a class="btn-icon primary" href="<?= e(app_url('siswa/index.php?kelas_id=' . $row['id'])) ?>" title="Kelola siswa" aria-label="Kelola siswa">
                   <?= icon('users') ?>
                 </a>
               </td>

@@ -26,6 +26,8 @@ require_once BASE_PATH . '/lib/HafalanTarget.php';
 require_once BASE_PATH . '/lib/HafalanProgress.php';
 require_once BASE_PATH . '/lib/HafalanRekapExporter.php';
 require_once BASE_PATH . '/lib/QuranApi.php';
+require_once BASE_PATH . '/lib/EmbedUrl.php';
+require_once BASE_PATH . '/lib/BahanAjar.php';
 
 load_env(BASE_PATH . '/.env');
 

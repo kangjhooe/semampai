@@ -6,44 +6,50 @@
 $user = $user ?? Auth::user();
 $pageTitle = trim(($title ?? 'Dashboard') . ' · ' . $appName);
 $initial = mb_strtoupper(mb_substr($appName, 0, 1));
-$script = basename((string) ($_SERVER['SCRIPT_NAME'] ?? ''));
+$scriptPath = str_replace('\\', '/', (string) ($_SERVER['SCRIPT_NAME'] ?? ''));
 $userInitial = mb_strtoupper(mb_substr((string) ($user['nama'] ?? 'U'), 0, 1));
 
 $navItems = [
     [
         'label' => 'Beranda',
         'href' => app_url('dashboard.php'),
-        'active' => in_array($script, ['dashboard.php'], true),
+        'active' => str_ends_with($scriptPath, '/dashboard.php'),
         'icon' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1v-9.5Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>',
     ],
     [
         'label' => 'Kelas',
-        'href' => app_url('kelas.php'),
-        'active' => str_starts_with($script, 'kelas'),
+        'href' => app_url('kelas/index.php'),
+        'active' => str_contains($scriptPath, '/kelas/'),
         'icon' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V7.8A1.8 1.8 0 0 1 5.8 6H12v13H5.8A1.8 1.8 0 0 1 4 17.2V19Zm8-13h6.2A1.8 1.8 0 0 1 20 7.8v9.4A1.8 1.8 0 0 1 18.2 19H12V6Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 10h2M8 13h2M14 10h2M14 13h2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
     ],
     [
         'label' => 'Siswa',
-        'href' => app_url('siswa.php'),
-        'active' => str_starts_with($script, 'siswa'),
+        'href' => app_url('siswa/index.php'),
+        'active' => str_contains($scriptPath, '/siswa/'),
         'icon' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a3.5 3.5 0 1 0-3.5-3.5A3.5 3.5 0 0 0 12 12Zm-7.5 8a7.5 7.5 0 0 1 15 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M18.5 8.5a2.5 2.5 0 1 0-0.3-4.98M20.8 15.2a5.2 5.2 0 0 0-3.1-2.55" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
     ],
     [
+        'label' => 'Bahan Ajar',
+        'href' => app_url('bahan/index.php'),
+        'active' => str_contains($scriptPath, '/bahan/'),
+        'icon' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4H14v16H6.5A2.5 2.5 0 0 1 4 17.5v-11Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 4h3.5A2.5 2.5 0 0 1 20 6.5v11A2.5 2.5 0 0 1 17.5 20H14V4Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 8h3M8 11h3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+    ],
+    [
         'label' => 'Hafalan',
-        'href' => app_url('hafalan.php'),
-        'active' => $script === 'hafalan.php',
+        'href' => app_url('hafalan/index.php'),
+        'active' => str_ends_with($scriptPath, '/hafalan/index.php'),
         'icon' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4.5h9.5A2.5 2.5 0 0 1 18 7v13.5L12.5 17 7 20.5V7A2.5 2.5 0 0 1 9.5 4.5H6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 9h6M9 12h4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
     ],
     [
         'label' => 'Riwayat',
-        'href' => app_url('hafalan_riwayat.php'),
-        'active' => in_array($script, ['hafalan_riwayat.php', 'hafalan_siswa.php', 'hafalan_ekspor.php'], true),
+        'href' => app_url('hafalan/riwayat.php'),
+        'active' => (bool) preg_match('#/hafalan/(riwayat|siswa|ekspor)\.php$#', $scriptPath),
         'icon' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10a2 2 0 0 1 2 2v14l-3-2-3 2-3-2-3 2V6a2 2 0 0 1 2-2Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 9h6M9 12h6M9 15h3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
     ],
     [
         'label' => 'Rekap',
-        'href' => app_url('hafalan_rekap.php'),
-        'active' => in_array($script, ['hafalan_rekap.php', 'hafalan_target.php', 'hafalan_rekap_ekspor.php'], true),
+        'href' => app_url('hafalan/rekap.php'),
+        'active' => (bool) preg_match('#/hafalan/(rekap|target|rekap_ekspor)\.php$#', $scriptPath),
         'icon' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16M7 16V9m5 7V5m5 11v-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
     ],
 ];

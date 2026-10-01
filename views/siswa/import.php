@@ -10,7 +10,7 @@ unset($_SESSION['_import_errors']);
     <h1>Import siswa</h1>
     <p class="muted">
       Kelas <?= e($kelas['nama']) ?> ·
-      <a href="<?= e(app_url('siswa.php?kelas_id=' . $kelas['id'])) ?>">← Daftar siswa</a>
+      <a href="<?= e(app_url('siswa/index.php?kelas_id=' . $kelas['id'])) ?>">← Daftar siswa</a>
     </p>
   </div>
 </section>
@@ -22,7 +22,7 @@ unset($_SESSION['_import_errors']);
   </p>
 
   <div class="actions">
-    <a class="btn btn-ghost" href="<?= e(app_url('siswa_import.php?kelas_id=' . $kelas['id'] . '&template=1')) ?>">Unduh template Excel</a>
+    <a class="btn btn-ghost" href="<?= e(app_url('siswa/import.php?kelas_id=' . $kelas['id'] . '&template=1')) ?>">Unduh template Excel</a>
   </div>
 
   <?php if (!empty($errors['_form'])): ?>
@@ -40,7 +40,7 @@ unset($_SESSION['_import_errors']);
     </div>
   <?php endif; ?>
 
-  <form class="stack" method="post" action="<?= e(app_url('siswa_import.php?kelas_id=' . $kelas['id'])) ?>" enctype="multipart/form-data">
+  <form class="stack" method="post" action="<?= e(app_url('siswa/import.php?kelas_id=' . $kelas['id'])) ?>" enctype="multipart/form-data">
     <?= Csrf::field() ?>
     <input type="hidden" name="kelas_id" value="<?= (int) $kelas['id'] ?>">
     <div class="field">

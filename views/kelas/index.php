@@ -23,7 +23,7 @@ $defaultTahun = old('tahun_ajaran', date('Y') . '/' . (date('Y') + 1));
     <?php if (!empty($errors['_form'])): ?>
       <div class="alert error"><?= e($errors['_form']) ?></div>
     <?php endif; ?>
-    <form class="stack" method="post" action="<?= e(app_url('kelas.php')) ?>">
+    <form class="stack" method="post" action="<?= e(app_url('kelas/index.php')) ?>">
       <?= Csrf::field() ?>
       <div class="field">
         <label for="nama">Nama kelas</label>
@@ -64,10 +64,10 @@ $defaultTahun = old('tahun_ajaran', date('Y') . '/' . (date('Y') + 1));
                 <td><?= e($row['tahun_ajaran']) ?></td>
                 <td><?= (int) $row['jumlah_siswa'] ?></td>
                 <td class="table-actions">
-                  <a class="btn-icon" href="<?= e(app_url('kelas_edit.php?id=' . $row['id'])) ?>" title="Edit" aria-label="Edit">
+                  <a class="btn-icon" href="<?= e(app_url('kelas/edit.php?id=' . $row['id'])) ?>" title="Edit" aria-label="Edit">
                     <?= icon('edit') ?>
                   </a>
-                  <form method="post" action="<?= e(app_url('kelas_hapus.php')) ?>" onsubmit="return confirm('Hapus kelas beserta seluruh siswa?');">
+                  <form method="post" action="<?= e(app_url('kelas/hapus.php')) ?>" onsubmit="return confirm('Hapus kelas beserta seluruh siswa?');">
                     <?= Csrf::field() ?>
                     <input type="hidden" name="id" value="<?= (int) $row['id'] ?>">
                     <button class="btn-icon danger" type="submit" title="Hapus" aria-label="Hapus">

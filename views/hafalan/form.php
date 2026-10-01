@@ -30,9 +30,9 @@ $prefillHint = !empty($prefillHint);
   <div class="actions">
     <?php if ($kelas): ?>
       <?php if ($fromRekap): ?>
-        <a class="btn btn-ghost" href="<?= e(app_url('hafalan_rekap.php?kelas_id=' . $kelas['id'] . '&view=siswa')) ?>">← Rekap</a>
+        <a class="btn btn-ghost" href="<?= e(app_url('hafalan/rekap.php?kelas_id=' . $kelas['id'] . '&view=siswa')) ?>">← Rekap</a>
       <?php endif; ?>
-      <a class="btn btn-ghost" href="<?= e(app_url('hafalan_riwayat.php?kelas_id=' . $kelas['id'])) ?>">Riwayat</a>
+      <a class="btn btn-ghost" href="<?= e(app_url('hafalan/riwayat.php?kelas_id=' . $kelas['id'])) ?>">Riwayat</a>
     <?php endif; ?>
   </div>
 </section>
@@ -42,11 +42,11 @@ $prefillHint = !empty($prefillHint);
 
 <?php if ($daftarKelas === []): ?>
   <section class="card">
-    <p class="muted">Belum ada kelas. <a href="<?= e(app_url('kelas.php')) ?>">Buat kelas dulu</a>.</p>
+    <p class="muted">Belum ada kelas. <a href="<?= e(app_url('kelas/index.php')) ?>">Buat kelas dulu</a>.</p>
   </section>
 <?php else: ?>
 
-  <form class="stack hafalan-form" method="get" action="<?= e(app_url('hafalan.php')) ?>">
+  <form class="stack hafalan-form" method="get" action="<?= e(app_url('hafalan/index.php')) ?>">
     <div class="field">
       <label for="kelas_id">Kelas</label>
       <select id="kelas_id" name="kelas_id" onchange="this.form.submit()">
@@ -61,7 +61,7 @@ $prefillHint = !empty($prefillHint);
 
   <?php if ($siswaList === []): ?>
     <section class="card">
-      <p class="muted">Kelas ini belum punya siswa. <a href="<?= e(app_url('siswa.php?kelas_id=' . $kelas['id'])) ?>">Tambah siswa</a>.</p>
+      <p class="muted">Kelas ini belum punya siswa. <a href="<?= e(app_url('siswa/index.php?kelas_id=' . $kelas['id'])) ?>">Tambah siswa</a>.</p>
     </section>
   <?php else: ?>
     <section class="card stack hafalan-card">
@@ -72,7 +72,7 @@ $prefillHint = !empty($prefillHint);
         <div class="alert error"><?= e($errors['_form']) ?></div>
       <?php endif; ?>
 
-      <form class="stack" method="post" action="<?= e(app_url('hafalan.php?kelas_id=' . $kelas['id'])) ?>" id="form-hafalan">
+      <form class="stack" method="post" action="<?= e(app_url('hafalan/index.php?kelas_id=' . $kelas['id'])) ?>" id="form-hafalan">
         <?= Csrf::field() ?>
         <input type="hidden" name="kelas_id" value="<?= (int) $kelas['id'] ?>">
         <input type="hidden" name="tampil" id="tampil-input" value="<?= e($tampilMode) ?>">

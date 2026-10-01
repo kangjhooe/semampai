@@ -238,7 +238,7 @@ final class HafalanProgress
 
     public static function setorUrl(int $kelasId, int $siswaId, int $suratNomor, bool $fromRekap = true): string
     {
-        $url = 'hafalan.php?kelas_id=' . $kelasId
+        $url = 'hafalan/index.php?kelas_id=' . $kelasId
             . '&siswa_id=' . $siswaId
             . '&surat=' . $suratNomor;
         if ($fromRekap) {

@@ -21,9 +21,9 @@ $qs = $kelas ? ('kelas_id=' . (int) $kelas['id']) : '';
   </div>
   <div class="actions">
     <?php if ($kelas): ?>
-      <a class="btn btn-ghost" href="<?= e(app_url('hafalan_target.php?kelas_id=' . $kelas['id'])) ?>">Atur target</a>
+      <a class="btn btn-ghost" href="<?= e(app_url('hafalan/target.php?kelas_id=' . $kelas['id'])) ?>">Atur target</a>
       <?php if ($matrix): ?>
-        <a class="btn btn-ghost" href="<?= e(app_url('hafalan_rekap_ekspor.php?' . $qs . '&view=' . urlencode($viewMode))) ?>">Ekspor Excel</a>
+        <a class="btn btn-ghost" href="<?= e(app_url('hafalan/rekap_ekspor.php?' . $qs . '&view=' . urlencode($viewMode))) ?>">Ekspor Excel</a>
       <?php endif; ?>
     <?php endif; ?>
   </div>
@@ -35,7 +35,7 @@ $qs = $kelas ? ('kelas_id=' . (int) $kelas['id']) : '';
 <?php if ($daftarKelas === []): ?>
   <section class="card"><p class="muted">Belum ada kelas.</p></section>
 <?php else: ?>
-  <form class="card filter-bar" method="get" action="<?= e(app_url('hafalan_rekap.php')) ?>">
+  <form class="card filter-bar" method="get" action="<?= e(app_url('hafalan/rekap.php')) ?>">
     <div class="grid-2">
       <div class="field">
         <label for="kelas_id">Kelas</label>
@@ -61,7 +61,7 @@ $qs = $kelas ? ('kelas_id=' . (int) $kelas['id']) : '';
     <section class="card">
       <p class="muted">
         Target belum diatur untuk kelas ini.
-        <a href="<?= e(app_url('hafalan_target.php?kelas_id=' . ($kelas['id'] ?? 0))) ?>">Atur target sekarang</a>.
+        <a href="<?= e(app_url('hafalan/target.php?kelas_id=' . ($kelas['id'] ?? 0))) ?>">Atur target sekarang</a>.
       </p>
     </section>
   <?php elseif ($matrix['siswa'] === []): ?>
@@ -121,7 +121,7 @@ $qs = $kelas ? ('kelas_id=' . (int) $kelas['id']) : '';
                 <tr>
                   <td class="col-num sticky-col sticky-num"><?= $i + 1 ?></td>
                   <th class="sticky-col sticky-label">
-                    <a href="<?= e(app_url('hafalan_siswa.php?siswa_id=' . $sid)) ?>"><?= e($siswa['nama']) ?></a>
+                    <a href="<?= e(app_url('hafalan/siswa.php?siswa_id=' . $sid)) ?>"><?= e($siswa['nama']) ?></a>
                   </th>
                   <td><?= (int) $rs['tuntas'] ?>/<?= (int) $rs['total_surat'] ?></td>
                   <?php foreach ($matrix['surat'] as $surat): ?>
