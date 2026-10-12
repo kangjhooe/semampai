@@ -16,5 +16,6 @@ $pageTitle = trim(($title ?? 'Masuk') . ' · ' . $appName);
   <div class="guest-shell">
     <?php require $contentView; ?>
   </div>
+  <script src="<?= e(app_url('assets/js/password-toggle.js')) ?>"></script>
 </body>
 </html>

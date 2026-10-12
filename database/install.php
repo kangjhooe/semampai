@@ -3,8 +3,11 @@
 declare(strict_types=1);
 
 /**
- * Satu kali: buka http://localhost/semampai/database/install.php
+ * Satu kali, setelah database kosong dibuat di panel hosting dan .env diisi.
+ * Buka: https://domain-anda/database/install
  * Setelah sukses, hapus atau proteksi file ini.
+ *
+ * File migrate_*.php tidak dijalankan di sini. Itu hanya untuk database lama.
  */
 
 require_once dirname(__DIR__) . '/config/bootstrap.php';
@@ -18,13 +21,30 @@ $user = env('DB_USER', 'root');
 $pass = env('DB_PASS', '') ?? '';
 
 try {
-    $pdo = new PDO("mysql:host={$host};port={$port};charset=utf8mb4", $user, $pass, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-    ]);
-
     $sql = file_get_contents(__DIR__ . '/schema.sql');
     if ($sql === false) {
         throw new RuntimeException('Tidak bisa membaca schema.sql');
+    }
+
+    $options = [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::MYSQL_ATTR_MULTI_STATEMENTS => true,
+    ];
+
+    try {
+        $pdo = new PDO(
+            "mysql:host={$host};port={$port};dbname={$name};charset=utf8mb4",
+            $user,
+            $pass,
+            $options
+        );
+    } catch (PDOException) {
+        $pdo = new PDO("mysql:host={$host};port={$port};charset=utf8mb4", $user, $pass, $options);
+        $safeName = '`' . str_replace('`', '``', (string) $name) . '`';
+        $pdo->exec(
+            "CREATE DATABASE IF NOT EXISTS {$safeName} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
+        );
+        $pdo->exec('USE ' . $safeName);
     }
 
     $pdo->exec($sql);

@@ -83,25 +83,86 @@ function app_pretty_path(string $path): string
         $path = substr($path, 0, -4);
     }
 
+    $isDirectoryIndex = false;
     if (strcasecmp($path, 'index') === 0) {
         $path = '';
+        $isDirectoryIndex = true;
     } else {
-        $path = preg_replace('#/index$#i', '', $path) ?? $path;
+        $stripped = preg_replace('#/index$#i', '', $path) ?? $path;
+        if ($stripped !== $path) {
+            $path = $stripped;
+            $isDirectoryIndex = true;
+        }
+    }
+
+    // /kelas (tanpa garis miring) di-redirect 301 ke /kelas/ oleh server.
+    // Redirect itu mengubah POST menjadi GET, jadi simpan kelas tidak tersimpan.
+    if ($isDirectoryIndex && $path !== '') {
+        $path .= '/';
     }
 
     return $path . $query . $fragment;
 }
 
-function app_url(string $path = ''): string
+/** Host lokal atau IP LAN. Domain publik tidak masuk sini. */
+function app_host_is_local(string $host): bool
+{
+    $host = strtolower(trim($host, '[]'));
+
+    if (in_array($host, ['localhost', '127.0.0.1', '::1'], true)) {
+        return true;
+    }
+
+    if (filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) === false) {
+        return false;
+    }
+
+    return filter_var(
+        $host,
+        FILTER_VALIDATE_IP,
+        FILTER_FLAG_IPV4 | FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
+    ) === false;
+}
+
+/**
+ * Basis URL aplikasi.
+ * Kalau APP_URL di hosting masih http:// pada domain publik, naikkan ke https://.
+ * Halaman HTTPS menolak CSS dan JS dari http://, jadi tampilan jatuh ke HTML polos.
+ */
+function app_base_url(): string
 {
     $base = rtrim(env('APP_URL', '') ?? '', '/');
+    if ($base === '' || preg_match('#^http://#i', $base) !== 1) {
+        return $base;
+    }
+
+    $host = parse_url($base, PHP_URL_HOST);
+    if (!is_string($host) || app_host_is_local($host)) {
+        return $base;
+    }
+
+    return 'https://' . substr($base, 7);
+}
+
+function app_url(string $path = ''): string
+{
+    $base = app_base_url();
     $path = app_pretty_path($path);
 
     if ($base === '') {
         return $path === '' ? '/' : '/' . $path;
     }
 
-    return $path === '' ? $base : $base . '/' . $path;
+    if ($path === '') {
+        $basePath = parse_url($base, PHP_URL_PATH);
+        if (is_string($basePath) && $basePath !== '' && $basePath !== '/') {
+            return $base . '/';
+        }
+
+        return $base;
+    }
+
+    return $base . '/' . $path;
 }
 
 /** Kunci untuk tanda tangan URL (mis. unduhan bahan ajar). */
@@ -185,8 +246,17 @@ function icon(string $name): string
         'edit' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4.5L19 9.5 14.5 5 4 15.5V20Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="m13.2 6.3 4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
         'trash' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M9.5 7V5.8A1.8 1.8 0 0 1 11.3 4h1.4A1.8 1.8 0 0 1 14.5 5.8V7m-7 0 0.7 11.2A1.8 1.8 0 0 0 10 20h4a1.8 1.8 0 0 0 1.8-1.8L16.5 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 11v5M14 11v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
         'eye' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.5-6.5 9.5-6.5S21.5 12 21.5 12s-3.5 6.5-9.5 6.5S2.5 12 2.5 12Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="12" r="2.6" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>',
+        'eye-off' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4.5 20 19.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M9.7 9.9a2.6 2.6 0 0 0 3.6 3.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M6.4 7.1C4.3 8.4 2.8 10.3 2.5 12s3.5 6.5 9.5 6.5c1.6 0 3.1-.4 4.3-1.1M9.8 5.6A9.8 9.8 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a17 17 0 0 1-2.7 3.3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
         'users' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a3.5 3.5 0 1 0-3.5-3.5A3.5 3.5 0 0 0 12 12Zm-7.5 8a7.5 7.5 0 0 1 15 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M18.5 8.5a2.5 2.5 0 1 0-.3-4.98M20.8 15.2a5.2 5.2 0 0 0-3.1-2.55" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
     ];
 
     return $icons[$name] ?? '';
+}
+
+function password_toggle(): string
+{
+    return '<button type="button" class="password-toggle" aria-pressed="false" aria-label="Tampilkan password" title="Tampilkan password">'
+        . '<span data-icon="show">' . icon('eye') . '</span>'
+        . '<span data-icon="hide">' . icon('eye-off') . '</span>'
+        . '</button>';
 }

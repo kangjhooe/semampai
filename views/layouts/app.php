@@ -308,5 +308,6 @@ $navItems = [
       });
     })();
   </script>
+  <script src="<?= e(app_url('assets/js/password-toggle.js')) ?>"></script>
 </body>
 </html>

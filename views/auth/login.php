@@ -65,7 +65,10 @@ $success = flash('success');
 
       <div class="field">
         <label for="password">Password</label>
-        <input id="password" type="password" name="password" required>
+        <div class="password-field">
+          <input id="password" type="password" name="password" required>
+          <?= password_toggle() ?>
+        </div>
       </div>
 
       <button class="btn btn-primary" type="submit">Masuk</button>

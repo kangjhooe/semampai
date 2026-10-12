@@ -64,13 +64,19 @@ $errors = $errors ?? [];
     <div class="grid-2">
       <div class="field">
         <label for="password">Password</label>
-        <input id="password" type="password" name="password" minlength="8" required>
+        <div class="password-field">
+          <input id="password" type="password" name="password" minlength="8" required>
+          <?= password_toggle() ?>
+        </div>
         <?php if (!empty($errors['password'])): ?><div class="error"><?= e($errors['password']) ?></div><?php endif; ?>
       </div>
 
       <div class="field">
         <label for="password_confirmation">Ulangi password</label>
-        <input id="password_confirmation" type="password" name="password_confirmation" minlength="8" required>
+        <div class="password-field">
+          <input id="password_confirmation" type="password" name="password_confirmation" minlength="8" required>
+          <?= password_toggle() ?>
+        </div>
         <?php if (!empty($errors['password_confirmation'])): ?><div class="error"><?= e($errors['password_confirmation']) ?></div><?php endif; ?>
       </div>
     </div>

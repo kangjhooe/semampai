@@ -2,7 +2,8 @@
   Options -MultiViews
   RewriteEngine On
 
-  # /path/file.php → /path/file (query string tetap)
+  # Hanya GET/HEAD. Redirect 301 pada POST mengubahnya menjadi GET, jadi form gagal tersimpan.
+  RewriteCond %{REQUEST_METHOD} ^(GET|HEAD)$
   RewriteCond %{THE_REQUEST} \s([^.]+?)\.php(?:\?|\s) [NC]
   RewriteRule ^ %1 [R=301,L,QSA,NE]
 

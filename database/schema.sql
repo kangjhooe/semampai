@@ -1,9 +1,3 @@
-CREATE DATABASE IF NOT EXISTS semampai
-  CHARACTER SET utf8mb4
-  COLLATE utf8mb4_unicode_ci;
-
-USE semampai;
-
 CREATE TABLE IF NOT EXISTS sekolah (
   npsn VARCHAR(8) NOT NULL,
   nama_sekolah VARCHAR(255) NOT NULL,

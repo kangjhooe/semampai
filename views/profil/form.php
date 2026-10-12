@@ -59,7 +59,10 @@ $activeNpsn = (string) ($user['npsn'] ?? '');
 
       <div class="field">
         <label for="current_password">Password saat ini</label>
-        <input id="current_password" type="password" name="current_password" required autocomplete="current-password">
+        <div class="password-field">
+          <input id="current_password" type="password" name="current_password" required autocomplete="current-password">
+          <?= password_toggle() ?>
+        </div>
         <?php if (!empty($passwordErrors['current_password'])): ?>
           <div class="error"><?= e($passwordErrors['current_password']) ?></div>
         <?php endif; ?>
@@ -67,7 +70,10 @@ $activeNpsn = (string) ($user['npsn'] ?? '');
 
       <div class="field">
         <label for="password">Password baru</label>
-        <input id="password" type="password" name="password" minlength="8" required autocomplete="new-password">
+        <div class="password-field">
+          <input id="password" type="password" name="password" minlength="8" required autocomplete="new-password">
+          <?= password_toggle() ?>
+        </div>
         <div class="hint">Minimal 8 karakter</div>
         <?php if (!empty($passwordErrors['password'])): ?>
           <div class="error"><?= e($passwordErrors['password']) ?></div>
@@ -76,7 +82,10 @@ $activeNpsn = (string) ($user['npsn'] ?? '');
 
       <div class="field">
         <label for="password_confirmation">Ulangi password baru</label>
-        <input id="password_confirmation" type="password" name="password_confirmation" minlength="8" required autocomplete="new-password">
+        <div class="password-field">
+          <input id="password_confirmation" type="password" name="password_confirmation" minlength="8" required autocomplete="new-password">
+          <?= password_toggle() ?>
+        </div>
         <?php if (!empty($passwordErrors['password_confirmation'])): ?>
           <div class="error"><?= e($passwordErrors['password_confirmation']) ?></div>
         <?php endif; ?>
