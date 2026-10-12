@@ -11,12 +11,12 @@ $pageTitle = trim(($title ?? 'Masuk') . ' · ' . $appName);
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#f3f6f2">
   <title><?= e($pageTitle) ?></title>
-  <link rel="stylesheet" href="<?= e(app_url('assets/css/app.css')) ?>">
+  <link rel="stylesheet" href="<?= e(asset_url('assets/css/app.css')) ?>">
 </head>
 <body>
   <div class="guest-shell">
     <?php require $contentView; ?>
   </div>
-  <script src="<?= e(app_url('assets/js/password-toggle.js')) ?>"></script>
+  <script src="<?= e(asset_url('assets/js/password-toggle.js')) ?>"></script>
 </body>
 </html>

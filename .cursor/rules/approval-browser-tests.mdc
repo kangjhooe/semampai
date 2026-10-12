@@ -1,0 +1,10 @@
+---
+description: Jangan buka browser atau membuat file tes tanpa persetujuan
+alwaysApply: true
+---
+
+# Persetujuan sebelum browser dan file tes
+
+- Jangan membuka, menavigasi, atau mengoperasikan browser tanpa persetujuan eksplisit di pesan tersebut.
+- Jangan membuat file tes (skrip tes, fixture, atau berkas percobaan) tanpa persetujuan eksplisit di pesan tersebut.
+- Kalau verifikasi butuh browser atau file tes, minta izin dulu dan tunggu jawaban.

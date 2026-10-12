@@ -66,7 +66,7 @@ $success = flash('success');
       <div class="field">
         <label for="password">Password</label>
         <div class="password-field">
-          <input id="password" type="password" name="password" required>
+          <input id="password" type="password" name="password" placeholder="Masukkan password" required autocomplete="current-password">
           <?= password_toggle() ?>
         </div>
       </div>

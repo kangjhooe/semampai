@@ -70,6 +70,9 @@ $progressPct = ($stepMode && (int) $totalSoal > 0)
       <div class="kuis-feedback <?= !empty($feedback['ok']) ? 'is-ok' : 'is-bad' ?>">
         <strong><?= !empty($feedback['ok']) ? 'Benar!' : 'Belum tepat' ?></strong>
         <p>Jawaban Anda: <?= e((string) $feedback['pilih_teks']) ?></p>
+        <?php if (isset($feedback['poin'])): ?>
+          <p>+<?= (int) $feedback['poin'] ?> poin</p>
+        <?php endif; ?>
         <?php if (empty($feedback['ok'])): ?>
           <p>Kunci: <strong><?= e((string) $feedback['benar_teks']) ?></strong></p>
         <?php endif; ?>
@@ -85,7 +88,7 @@ $progressPct = ($stepMode && (int) $totalSoal > 0)
         <?= Csrf::field() ?>
         <input type="hidden" name="action" value="answer">
         <fieldset class="kuis-q">
-          <legend>Soal <?= (int) $currentIndex + 1 ?></legend>
+          <legend>Soal <?= (int) $currentIndex + 1 ?><?php if (!empty($currentSoal['poin'])): ?> · <?= (int) $currentSoal['poin'] ?> poin<?php endif; ?></legend>
           <p class="kuis-q-ask"><?= e((string) $currentSoal['pertanyaan']) ?></p>
           <?php if (!empty($currentSoal['gambar'])): ?>
             <img class="kuis-q-image" src="<?= e((string) $currentSoal['gambar']) ?>" alt="" loading="lazy">
@@ -131,7 +134,7 @@ $progressPct = ($stepMode && (int) $totalSoal > 0)
         <?= Csrf::field() ?>
         <?php foreach ($soal as $i => $item): ?>
           <fieldset class="kuis-q">
-            <legend>Soal <?= $i + 1 ?></legend>
+            <legend>Soal <?= $i + 1 ?><?php if (!empty($item['poin'])): ?> · <?= (int) $item['poin'] ?> poin<?php endif; ?></legend>
             <p class="kuis-q-ask"><?= e((string) $item['pertanyaan']) ?></p>
             <?php if (!empty($item['gambar'])): ?>
               <img class="kuis-q-image" src="<?= e((string) $item['gambar']) ?>" alt="" loading="lazy">

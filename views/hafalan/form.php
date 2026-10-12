@@ -41,9 +41,9 @@ $totalSiswa = count($siswaList);
   <script>document.body.classList.add('hafalan-fokus-on');</script>
 <?php endif; ?>
 
-<section class="page-head fokus-hide">
+<section class="page-head hafalan-page-head fokus-hide">
   <div>
-    <p class="muted">
+    <p class="muted hafalan-desk-only">
       <?= $isMurojaah
         ? 'Mode muroja\'ah — ulang surat yang sudah tuntas.'
         : 'Antrian siswa · centang ayat · Lancar / Ulang (pintasan L / U).' ?>
@@ -124,6 +124,9 @@ $totalSiswa = count($siswaList);
           </button>
         <?php endforeach; ?>
       </div>
+      <p class="error siswa-queue-error" id="siswa-chip-error" <?= empty($errors['siswa_id']) ? 'hidden' : '' ?>>
+        <?= e($errors['siswa_id'] ?? 'Pilih siswa dulu.') ?>
+      </p>
 
       <form class="stack" method="post" action="<?= e(app_url('hafalan/index.php?kelas_id=' . $kelas['id'])) ?>" id="form-hafalan">
         <?= Csrf::field() ?>
@@ -143,13 +146,17 @@ $totalSiswa = count($siswaList);
           </div>
           <div class="hafalan-toolbar-actions">
             <button type="button" class="btn btn-ghost btn-sm" id="btn-fokus" aria-pressed="<?= $fokusMode ? 'true' : 'false' ?>">
-              <?= $fokusMode ? 'Keluar fokus' : 'Mode fokus' ?>
+              <span class="hafalan-label-long"><?= $fokusMode ? 'Keluar fokus' : 'Mode fokus' ?></span>
+              <span class="hafalan-label-short"><?= $fokusMode ? 'Keluar' : 'Fokus' ?></span>
             </button>
-            <button type="button" class="btn btn-ghost btn-sm" id="btn-next-siswa">Siswa berikutnya</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="btn-next-siswa">
+              <span class="hafalan-label-long">Siswa berikutnya</span>
+              <span class="hafalan-label-short">Berikutnya</span>
+            </button>
           </div>
         </div>
 
-        <div class="hafalan-step fokus-compact">
+        <div class="hafalan-step hafalan-siswa-step fokus-compact">
           <span class="step-badge fokus-hide">1</span>
           <div class="field">
             <label for="siswa_id">Nama siswa</label>
@@ -165,7 +172,7 @@ $totalSiswa = count($siswaList);
           </div>
         </div>
 
-        <div class="hafalan-step fokus-compact">
+        <div class="hafalan-step hafalan-surat-step fokus-compact">
           <span class="step-badge fokus-hide">2</span>
           <div class="stack">
             <div class="field">
@@ -197,7 +204,7 @@ $totalSiswa = count($siswaList);
 
             <div id="ayat-list" class="ayat-list<?= $showTerjemah ? ' show-terjemah' : '' ?>" aria-live="polite"></div>
             <?php if (!empty($errors['ayat'])): ?><div class="error"><?= e($errors['ayat']) ?></div><?php endif; ?>
-            <p class="hint fokus-hide">Centang ayat berurutan (tanpa loncat). Pintasan: <kbd>L</kbd> Lancar · <kbd>U</kbd> Ulang · <kbd>N</kbd> siswa berikutnya.</p>
+            <p class="hint hafalan-desk-only fokus-hide">Centang ayat berurutan (tanpa loncat). Pintasan: <kbd>L</kbd> Lancar · <kbd>U</kbd> Ulang · <kbd>N</kbd> siswa berikutnya.</p>
           </div>
         </div>
 
@@ -205,9 +212,12 @@ $totalSiswa = count($siswaList);
           <span class="step-badge fokus-hide">3</span>
           <div class="stack">
             <label class="field-label fokus-hide">Status</label>
-            <div class="status-grid">
-              <button class="btn-status lancar" type="submit" name="status" value="lancar" id="btn-lancar">Lancar <span class="kbd-hint">L</span></button>
-              <button class="btn-status ulang" type="submit" name="status" value="ulang" id="btn-ulang">Ulang <span class="kbd-hint">U</span></button>
+            <div class="hafalan-save-dock" id="hafalan-dock">
+              <p class="hafalan-dock-meta" id="ayat-picked">Pilih siswa, lalu centang ayat</p>
+              <div class="status-grid">
+                <button class="btn-status lancar" type="submit" name="status" value="lancar" id="btn-lancar">Lancar <span class="kbd-hint">L</span></button>
+                <button class="btn-status ulang" type="submit" name="status" value="ulang" id="btn-ulang">Ulang <span class="kbd-hint">U</span></button>
+              </div>
             </div>
             <?php if (!empty($errors['status'])): ?><div class="error"><?= e($errors['status']) ?></div><?php endif; ?>
 
@@ -219,7 +229,8 @@ $totalSiswa = count($siswaList);
 
             <label class="advance-check fokus-hide">
               <input type="checkbox" id="advance-check" checked>
-              Setelah simpan, lanjut ke siswa berikutnya yang belum setor hari ini
+              <span class="hafalan-label-long">Setelah simpan, lanjut ke siswa berikutnya yang belum setor hari ini</span>
+              <span class="hafalan-label-short">Lanjut ke siswa yang belum setor</span>
             </label>
           </div>
         </div>
@@ -227,7 +238,7 @@ $totalSiswa = count($siswaList);
     </section>
 
     <?php if ($recent !== [] && !$fokusMode): ?>
-      <section class="card">
+      <section class="card hafalan-recent">
         <h2 class="card-title">Setoran terakhir</h2>
         <ul class="recent-list">
           <?php foreach ($recent as $row): ?>
@@ -263,6 +274,16 @@ $totalSiswa = count($siswaList);
         var form = document.getElementById('form-hafalan');
         var cache = {};
 
+        function syncSiswaRequired() {
+          var step = document.querySelector('.hafalan-siswa-step');
+          var hidden = step && getComputedStyle(step).display === 'none';
+          if (hidden) siswaSelect.removeAttribute('required');
+          else siswaSelect.setAttribute('required', '');
+        }
+
+        syncSiswaRequired();
+        window.addEventListener('resize', syncSiswaRequired);
+
         if (initialData && initialData.nomor) {
           cache[String(initialData.nomor)] = initialData;
         }
@@ -284,11 +305,47 @@ $totalSiswa = count($siswaList);
 
         function syncChips() {
           var val = siswaSelect.value;
+          var activeChip = null;
           document.querySelectorAll('.siswa-chip').forEach(function (chip) {
             var active = chip.getAttribute('data-siswa-id') === val;
             chip.classList.toggle('is-active', active);
             chip.setAttribute('aria-selected', active ? 'true' : 'false');
+            if (active) activeChip = chip;
           });
+          if (activeChip && activeChip.scrollIntoView) {
+            activeChip.scrollIntoView({ inline: 'nearest', block: 'nearest' });
+          }
+          if (val) {
+            var chipError = document.getElementById('siswa-chip-error');
+            if (chipError) chipError.hidden = true;
+          }
+          updatePicked();
+        }
+
+        function updatePicked() {
+          var meta = document.getElementById('ayat-picked');
+          if (!meta || !listEl || !siswaSelect) return;
+          var n = listEl.querySelectorAll('input[name="ayat[]"]:checked').length;
+          var nama = '';
+          var opt = siswaSelect.options[siswaSelect.selectedIndex];
+          if (opt && opt.value) {
+            nama = opt.text.replace(/\s*·\s*✓\s*$/, '').trim();
+          }
+          var surat = '';
+          if (suratSelect && suratSelect.selectedIndex >= 0) {
+            surat = suratSelect.options[suratSelect.selectedIndex].text
+              .replace(/^\d+\.\s*/, '')
+              .replace(/\s*\(\d+\s*ayat\)\s*$/, '')
+              .trim();
+          }
+          var ayatLabel = n === 0 ? 'centang ayat' : (n + ' ayat');
+          if (nama && surat) {
+            meta.textContent = nama + ' · ' + surat + ' · ' + ayatLabel;
+          } else if (nama) {
+            meta.textContent = nama + ' · ' + ayatLabel;
+          } else {
+            meta.textContent = 'Pilih siswa, lalu centang ayat';
+          }
         }
 
         function render(data, keepSelection) {
@@ -319,6 +376,7 @@ $totalSiswa = count($siswaList);
           listEl.innerHTML = html;
           statusEl.textContent = data.jumlah_ayat + ' ayat · ' + (data.nama_latin || '');
           selectedAyat = [];
+          updatePicked();
         }
 
         function loadSurat(nomor, keepSelection) {
@@ -391,7 +449,16 @@ $totalSiswa = count($siswaList);
           if (card) card.classList.toggle('is-fokus', fokusMode);
           var btn = document.getElementById('btn-fokus');
           if (btn) {
-            btn.textContent = fokusMode ? 'Keluar fokus' : 'Mode fokus';
+            var longText = fokusMode ? 'Keluar fokus' : 'Mode fokus';
+            var shortText = fokusMode ? 'Keluar' : 'Fokus';
+            var longEl = btn.querySelector('.hafalan-label-long');
+            var shortEl = btn.querySelector('.hafalan-label-short');
+            if (longEl && shortEl) {
+              longEl.textContent = longText;
+              shortEl.textContent = shortText;
+            } else {
+              btn.textContent = longText;
+            }
             btn.setAttribute('aria-pressed', fokusMode ? 'true' : 'false');
           }
         }
@@ -402,6 +469,7 @@ $totalSiswa = count($siswaList);
         });
 
         siswaSelect.addEventListener('change', syncChips);
+        listEl.addEventListener('change', updatePicked);
 
         document.querySelectorAll('.siswa-chip').forEach(function (chip) {
           chip.addEventListener('click', function () {
@@ -430,19 +498,31 @@ $totalSiswa = count($siswaList);
           listEl.querySelectorAll('input[name="ayat[]"]').forEach(function (el) {
             el.checked = true;
           });
+          updatePicked();
         });
 
         document.getElementById('btn-ayat-kosong').addEventListener('click', function () {
           listEl.querySelectorAll('input[name="ayat[]"]').forEach(function (el) {
             el.checked = false;
           });
+          updatePicked();
         });
 
         document.getElementById('btn-next-siswa').addEventListener('click', nextSiswa);
         document.getElementById('btn-fokus').addEventListener('click', toggleFokus);
 
-        form.addEventListener('submit', function () {
+        form.addEventListener('submit', function (e) {
           advanceNext.value = advanceCheck && advanceCheck.checked ? '1' : '0';
+          if (!siswaSelect.value) {
+            e.preventDefault();
+            var chipError = document.getElementById('siswa-chip-error');
+            if (chipError) {
+              chipError.hidden = false;
+              chipError.textContent = 'Pilih siswa dulu.';
+            }
+            var queue = document.querySelector('.siswa-queue');
+            if (queue && queue.scrollIntoView) queue.scrollIntoView({ block: 'center' });
+          }
         });
 
         document.addEventListener('keydown', function (e) {

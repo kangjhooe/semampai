@@ -25,11 +25,11 @@ $modeLatihan = !empty($play['mode_latihan']);
 $soalList = $play['soal'];
 $totalSoal = count($soalList);
 
-$finishPlay = static function (array $jawabanMap) use ($kuisId, $kuis, $play): never {
+$finishPlay = static function (array $jawabanMap, array $waktuMap = []) use ($kuisId, $kuis, $play): never {
     $siswaId = isset($play['siswa_id']) && $play['siswa_id'] !== null
         ? (int) $play['siswa_id']
         : null;
-    $result = Kuis::submitHasil($kuisId, (string) $play['nama'], $jawabanMap, $siswaId);
+    $result = Kuis::submitHasil($kuisId, (string) $play['nama'], $jawabanMap, $siswaId, $waktuMap);
     if (!$result['ok']) {
         $msg = $result['errors']['_form'] ?? 'Gagal menyimpan hasil.';
         unset($_SESSION['kuis_play']);
@@ -58,15 +58,34 @@ $finishPlay = static function (array $jawabanMap) use ($kuisId, $kuis, $play): n
 
 $collectAnswers = static function () use (&$play): array {
     $map = [];
+    $waktu = [];
     foreach (($play['answers'] ?? []) as $sid => $ans) {
+        $sid = (int) $sid;
         if (is_array($ans) && array_key_exists('value', $ans)) {
-            $map[(int) $sid] = $ans['value'];
+            $map[$sid] = $ans['value'];
+            if (array_key_exists('ms', $ans) && $ans['ms'] !== null) {
+                $waktu[$sid] = (int) $ans['ms'];
+            }
         } else {
-            $map[(int) $sid] = $ans;
+            $map[$sid] = $ans;
         }
     }
 
-    return $map;
+    return [$map, $waktu];
+};
+
+$elapsedMs = static function (array $play, array $current) : ?int {
+    $detik = (int) ($current['timer_detik'] ?? 0);
+    if ($detik < 5) {
+        return null;
+    }
+    $started = (float) ($play['soal_started_at'] ?? 0);
+    if ($started <= 0) {
+        return $detik * 1000;
+    }
+    $ms = (int) round((microtime(true) - $started) * 1000);
+
+    return max(0, min($detik * 1000, $ms));
 };
 
 $ensureSoalTimer = static function () use (&$play): void {
@@ -78,11 +97,13 @@ $ensureSoalTimer = static function () use (&$play): void {
     $detik = (int) ($soal['timer_detik'] ?? 0);
     if ($detik > 0) {
         if (empty($play['soal_ends_at']) || (int) ($play['soal_timer_for'] ?? -1) !== $idx) {
+            $play['soal_started_at'] = microtime(true);
             $play['soal_ends_at'] = time() + $detik;
             $play['soal_timer_for'] = $idx;
             $_SESSION['kuis_play'] = $play;
         }
     } else {
+        $play['soal_started_at'] = 0;
         $play['soal_ends_at'] = 0;
         $play['soal_timer_for'] = $idx;
         $_SESSION['kuis_play'] = $play;
@@ -106,10 +127,12 @@ if ($stepMode) {
             $play['feedback'] = null;
             $play['index'] = (int) $play['index'] + 1;
             $play['soal_ends_at'] = 0;
+            $play['soal_started_at'] = 0;
             $_SESSION['kuis_play'] = $play;
 
             if ((int) $play['index'] >= $totalSoal) {
-                $finishPlay($collectAnswers());
+                [$map, $waktu] = $collectAnswers();
+                $finishPlay($map, $waktu);
             }
             redirect('kuis/main.php');
         }
@@ -117,7 +140,8 @@ if ($stepMode) {
         $idx = (int) $play['index'];
         $current = $soalList[$idx] ?? null;
         if (!$current) {
-            $finishPlay($collectAnswers());
+            [$map, $waktu] = $collectAnswers();
+            $finishPlay($map, $waktu);
         }
 
         $sid = (int) $current['id'];
@@ -131,9 +155,19 @@ if ($stepMode) {
             ? Kuis::gradeJawaban($dbSoal, $rawAnswer === '' ? null : $rawAnswer)
             : ['ok' => false, 'pilih' => -1, 'benar' => 0, 'pilih_teks' => '', 'benar_teks' => ''];
 
+        $ms = $elapsedMs($play, $current);
+        $maks = Kuis::poinSoal(is_array($dbSoal) ? ($dbSoal['poin'] ?? 1) : ($current['poin'] ?? 1));
+        $earned = Kuis::poinDidapat(
+            $maks,
+            (bool) $graded['ok'],
+            (string) ($kuis['metode_nilai'] ?? 'tetap'),
+            (int) ($current['timer_detik'] ?? 0) >= 5 ? (int) $current['timer_detik'] : null,
+            $ms
+        );
         $play['answers'][$sid] = [
             'value' => $tipe === 'isian' ? (string) $graded['pilih'] : (int) $graded['pilih'],
             'ok' => $graded['ok'],
+            'ms' => $ms,
         ];
 
         if ($modeLatihan) {
@@ -142,6 +176,8 @@ if ($stepMode) {
                 'pilih_teks' => $graded['pilih_teks'],
                 'benar_teks' => $graded['benar_teks'],
                 'tipe' => $tipe,
+                'poin' => $earned,
+                'poin_maks' => $maks,
             ];
             $play['soal_ends_at'] = 0;
             $_SESSION['kuis_play'] = $play;
@@ -154,7 +190,8 @@ if ($stepMode) {
         $_SESSION['kuis_play'] = $play;
 
         if ((int) $play['index'] >= $totalSoal) {
-            $finishPlay($collectAnswers());
+            [$map, $waktu] = $collectAnswers();
+            $finishPlay($map, $waktu);
         }
         redirect('kuis/main.php');
     }
@@ -171,6 +208,7 @@ if ($stepMode) {
                 $play['answers'][$sid] = [
                     'value' => ($current['tipe'] ?? '') === 'isian' ? '' : -1,
                     'ok' => false,
+                    'ms' => $elapsedMs($play, $current),
                 ];
             }
             if ($modeLatihan) {
@@ -178,11 +216,14 @@ if ($stepMode) {
                 $graded = $dbSoal
                     ? Kuis::gradeJawaban($dbSoal, null)
                     : ['ok' => false, 'pilih_teks' => '(tidak dijawab)', 'benar_teks' => '', 'tipe' => 'pilihan_ganda'];
+                $maks = Kuis::poinSoal(is_array($dbSoal) ? ($dbSoal['poin'] ?? 1) : ($current['poin'] ?? 1));
                 $play['feedback'] = [
                     'ok' => false,
                     'pilih_teks' => '(waktu habis)',
                     'benar_teks' => $graded['benar_teks'] ?? '',
                     'tipe' => (string) ($current['tipe'] ?? 'pilihan_ganda'),
+                    'poin' => 0,
+                    'poin_maks' => $maks,
                 ];
                 $play['soal_ends_at'] = 0;
                 $_SESSION['kuis_play'] = $play;
@@ -192,7 +233,8 @@ if ($stepMode) {
             $play['soal_ends_at'] = 0;
             $_SESSION['kuis_play'] = $play;
             if ((int) $play['index'] >= $totalSoal) {
-                $finishPlay($collectAnswers());
+                [$map, $waktu] = $collectAnswers();
+                $finishPlay($map, $waktu);
             }
             redirect('kuis/main.php');
         }
@@ -229,7 +271,8 @@ if ($stepMode) {
 // Global timer also applies in step mode
 if ($endsAt > 0 && time() >= $endsAt) {
     if ($stepMode) {
-        $finishPlay($collectAnswers());
+        [$map, $waktu] = $collectAnswers();
+        $finishPlay($map, $waktu);
     }
 }
 

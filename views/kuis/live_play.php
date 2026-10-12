@@ -91,7 +91,7 @@
       return '<div class="kuis-feedback is-ok"><strong>Jawaban terkirim</strong><p>Tunggu reveal dari guru.</p></div>';
     }
     var html = '<form id="lp-form" class="stack">';
-    html += '<fieldset class="kuis-q"><legend>Soal ' + soal.nomor + '</legend>';
+    html += '<fieldset class="kuis-q"><legend>Soal ' + soal.nomor + (soal.poin ? ' · ' + soal.poin + ' poin' : '') + '</legend>';
     html += '<p class="kuis-q-ask">' + esc(soal.pertanyaan) + '</p>';
     if (soal.gambar) html += '<img class="kuis-q-image" src="' + esc(soal.gambar) + '" alt="">';
     if (soal.tipe === 'isian') {

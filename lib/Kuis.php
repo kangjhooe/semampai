@@ -92,8 +92,8 @@ final class Kuis
         try {
             $kode = self::generateUniqueKode($pdo);
             $stmt = $pdo->prepare(
-                'INSERT INTO kuis (user_id, kelas_id, judul, kode, aktif, acak_soal, acak_opsi, timer_menit, izinkan_ulang, tampil_pembahasan, mode_latihan)
-                 VALUES (:user_id, :kelas_id, :judul, :kode, :aktif, :acak_soal, :acak_opsi, :timer_menit, :izinkan_ulang, :tampil_pembahasan, :mode_latihan)'
+                'INSERT INTO kuis (user_id, kelas_id, judul, kode, aktif, acak_soal, acak_opsi, timer_menit, izinkan_ulang, tampil_pembahasan, mode_latihan, metode_nilai)
+                 VALUES (:user_id, :kelas_id, :judul, :kode, :aktif, :acak_soal, :acak_opsi, :timer_menit, :izinkan_ulang, :tampil_pembahasan, :mode_latihan, :metode_nilai)'
             );
             $stmt->execute([
                 'user_id' => $userId,
@@ -107,6 +107,7 @@ final class Kuis
                 'izinkan_ulang' => !empty($data['izinkan_ulang']) ? 1 : 0,
                 'tampil_pembahasan' => !empty($data['tampil_pembahasan']) ? 1 : 0,
                 'mode_latihan' => !empty($data['mode_latihan']) ? 1 : 0,
+                'metode_nilai' => self::metodeNilai($data['metode_nilai'] ?? 'tetap'),
             ]);
 
             return [
@@ -142,7 +143,8 @@ final class Kuis
                      timer_menit = :timer_menit,
                      izinkan_ulang = :izinkan_ulang,
                      tampil_pembahasan = :tampil_pembahasan,
-                     mode_latihan = :mode_latihan
+                     mode_latihan = :mode_latihan,
+                     metode_nilai = :metode_nilai
                  WHERE id = :id AND user_id = :user_id'
             );
             $stmt->execute([
@@ -155,6 +157,7 @@ final class Kuis
                 'izinkan_ulang' => !empty($data['izinkan_ulang']) ? 1 : 0,
                 'tampil_pembahasan' => !empty($data['tampil_pembahasan']) ? 1 : 0,
                 'mode_latihan' => !empty($data['mode_latihan']) ? 1 : 0,
+                'metode_nilai' => self::metodeNilai($data['metode_nilai'] ?? 'tetap'),
                 'id' => $id,
                 'user_id' => $userId,
             ]);
@@ -216,8 +219,8 @@ final class Kuis
                 : (isset($kuis['kelas_id']) && $kuis['kelas_id'] !== null ? (int) $kuis['kelas_id'] : null);
 
             $stmt = $pdo->prepare(
-                'INSERT INTO kuis (user_id, kelas_id, judul, kode, aktif, acak_soal, acak_opsi, timer_menit, izinkan_ulang, tampil_pembahasan, mode_latihan)
-                 VALUES (:user_id, :kelas_id, :judul, :kode, :aktif, :acak_soal, :acak_opsi, :timer_menit, :izinkan_ulang, :tampil_pembahasan, :mode_latihan)'
+                'INSERT INTO kuis (user_id, kelas_id, judul, kode, aktif, acak_soal, acak_opsi, timer_menit, izinkan_ulang, tampil_pembahasan, mode_latihan, metode_nilai)
+                 VALUES (:user_id, :kelas_id, :judul, :kode, :aktif, :acak_soal, :acak_opsi, :timer_menit, :izinkan_ulang, :tampil_pembahasan, :mode_latihan, :metode_nilai)'
             );
             $stmt->execute([
                 'user_id' => $userId,
@@ -231,12 +234,13 @@ final class Kuis
                 'izinkan_ulang' => (int) ($kuis['izinkan_ulang'] ?? 0),
                 'tampil_pembahasan' => (int) ($kuis['tampil_pembahasan'] ?? 1),
                 'mode_latihan' => (int) ($kuis['mode_latihan'] ?? 0),
+                'metode_nilai' => self::metodeNilai($kuis['metode_nilai'] ?? 'tetap'),
             ]);
             $newId = (int) $pdo->lastInsertId();
 
             $insertSoal = $pdo->prepare(
-                'INSERT INTO kuis_soal (kuis_id, urutan, pertanyaan, tipe, opsi_json, jawaban_index, jawaban_teks, timer_detik, gambar_path, gambar_url)
-                 VALUES (:kuis_id, :urutan, :pertanyaan, :tipe, :opsi_json, :jawaban_index, :jawaban_teks, :timer_detik, :gambar_path, :gambar_url)'
+                'INSERT INTO kuis_soal (kuis_id, urutan, pertanyaan, tipe, opsi_json, jawaban_index, jawaban_teks, timer_detik, poin, gambar_path, gambar_url)
+                 VALUES (:kuis_id, :urutan, :pertanyaan, :tipe, :opsi_json, :jawaban_index, :jawaban_teks, :timer_detik, :poin, :gambar_path, :gambar_url)'
             );
 
             foreach (self::soalForKuis($id) as $soal) {
@@ -257,6 +261,7 @@ final class Kuis
                     'jawaban_index' => (int) $soal['jawaban_index'],
                     'jawaban_teks' => $soal['jawaban_teks'] ?? null,
                     'timer_detik' => isset($soal['timer_detik']) && $soal['timer_detik'] !== null ? (int) $soal['timer_detik'] : null,
+                    'poin' => self::poinSoal($soal['poin'] ?? 1),
                     'gambar_path' => $newPath,
                     'gambar_url' => $soal['gambar_url'] ?? null,
                 ]);
@@ -291,6 +296,7 @@ final class Kuis
             $row['timer_detik'] = isset($row['timer_detik']) && $row['timer_detik'] !== null
                 ? (int) $row['timer_detik']
                 : null;
+            $row['poin'] = self::poinSoal($row['poin'] ?? 1);
         }
         unset($row);
 
@@ -328,6 +334,7 @@ final class Kuis
                 'tipe' => $tipe,
                 'opsi' => $opsiItems,
                 'timer_detik' => $row['timer_detik'],
+                'poin' => self::poinSoal($row['poin'] ?? 1),
                 'gambar' => self::gambarPublicUrl($row),
             ];
         }
@@ -426,6 +433,51 @@ final class Kuis
         return $value;
     }
 
+    public static function metodeNilai(mixed $value): string
+    {
+        $value = (string) $value;
+
+        return in_array($value, ['tetap', 'kecepatan', 'gabungan'], true) ? $value : 'tetap';
+    }
+
+    public static function poinSoal(mixed $value): int
+    {
+        $poin = (int) $value;
+
+        return max(1, min(100, $poin > 0 ? $poin : 1));
+    }
+
+    /**
+     * Poin yang didapat untuk satu soal.
+     * Tetap: poin penuh jika benar.
+     * Kecepatan: 100% di awal waktu, 50% di akhir.
+     * Gabungan: setengah poin pasti, setengah lagi mengikuti kurva kecepatan (akhir waktu 75%).
+     * Tanpa timer soal, kecepatan dan gabungan dihitung sebagai tetap.
+     */
+    public static function poinDidapat(int $maks, bool $benar, string $metode, ?int $timerDetik, ?int $elapsedMs): int
+    {
+        $maks = self::poinSoal($maks);
+        if (!$benar) {
+            return 0;
+        }
+
+        $metode = self::metodeNilai($metode);
+        $timer = (int) $timerDetik;
+        if ($metode === 'tetap' || $timer < 5 || $elapsedMs === null) {
+            return $maks;
+        }
+
+        $ratio = min(1.0, max(0.0, $elapsedMs / ($timer * 1000)));
+        if ($metode === 'kecepatan') {
+            $factor = 1 - (0.5 * $ratio);
+        } else {
+            $speed = 1 - (0.5 * $ratio);
+            $factor = 0.5 + (0.5 * $speed);
+        }
+
+        return (int) round($maks * $factor);
+    }
+
     /**
      * @return array{ok:bool, pilih:int|string, benar:int|string, pilih_teks:string, benar_teks:string}
      */
@@ -510,8 +562,8 @@ final class Kuis
 
         try {
             $stmt = $pdo->prepare(
-                'INSERT INTO kuis_soal (kuis_id, urutan, pertanyaan, tipe, opsi_json, jawaban_index, jawaban_teks, timer_detik, gambar_path, gambar_url)
-                 VALUES (:kuis_id, :urutan, :pertanyaan, :tipe, :opsi_json, :jawaban_index, :jawaban_teks, :timer_detik, :gambar_path, :gambar_url)'
+                'INSERT INTO kuis_soal (kuis_id, urutan, pertanyaan, tipe, opsi_json, jawaban_index, jawaban_teks, timer_detik, poin, gambar_path, gambar_url)
+                 VALUES (:kuis_id, :urutan, :pertanyaan, :tipe, :opsi_json, :jawaban_index, :jawaban_teks, :timer_detik, :poin, :gambar_path, :gambar_url)'
             );
             $stmt->execute([
                 'kuis_id' => $kuisId,
@@ -522,6 +574,7 @@ final class Kuis
                 'jawaban_index' => $parsed['jawaban_index'],
                 'jawaban_teks' => $parsed['jawaban_teks'],
                 'timer_detik' => $parsed['timer_detik'],
+                'poin' => $parsed['poin'],
                 'gambar_path' => $gambar['path'],
                 'gambar_url' => $gambar['url'],
             ]);
@@ -560,6 +613,7 @@ final class Kuis
         $row['timer_detik'] = isset($row['timer_detik']) && $row['timer_detik'] !== null
             ? (int) $row['timer_detik']
             : null;
+        $row['poin'] = self::poinSoal($row['poin'] ?? 1);
 
         return $row;
     }
@@ -593,6 +647,7 @@ final class Kuis
                      jawaban_index = :jawaban_index,
                      jawaban_teks = :jawaban_teks,
                      timer_detik = :timer_detik,
+                     poin = :poin,
                      gambar_path = :gambar_path,
                      gambar_url = :gambar_url
                  WHERE id = :id'
@@ -604,6 +659,7 @@ final class Kuis
                 'jawaban_index' => $parsed['jawaban_index'],
                 'jawaban_teks' => $parsed['jawaban_teks'],
                 'timer_detik' => $parsed['timer_detik'],
+                'poin' => $parsed['poin'],
                 'gambar_path' => $gambar['path'],
                 'gambar_url' => $gambar['url'],
                 'id' => $soalId,
@@ -706,6 +762,8 @@ final class Kuis
                     'benar_label' => 'Kunci',
                     'pilih_teks' => (string) ($item['pilih_teks'] ?? $item['pilih'] ?? '(tidak dijawab)'),
                     'benar_teks' => (string) ($item['benar_teks'] ?? $soal['jawaban_teks']),
+                    'poin' => array_key_exists('poin', $item) ? (int) $item['poin'] : null,
+                    'poin_maks' => array_key_exists('poin_maks', $item) ? (int) $item['poin_maks'] : null,
                 ];
                 continue;
             }
@@ -732,6 +790,8 @@ final class Kuis
                 'benar_label' => $labels[$benar] ?? (string) ($benar + 1),
                 'pilih_teks' => (string) ($item['pilih_teks'] ?? ($pilih >= 0 ? self::opsiLabel($soal['opsi'][$pilih] ?? null) : '(tidak dijawab)')),
                 'benar_teks' => (string) ($item['benar_teks'] ?? self::opsiLabel($soal['opsi'][$benar] ?? null)),
+                'poin' => array_key_exists('poin', $item) ? (int) $item['poin'] : null,
+                'poin_maks' => array_key_exists('poin_maks', $item) ? (int) $item['poin_maks'] : null,
             ];
         }
 
@@ -890,10 +950,11 @@ final class Kuis
     }
 
     /**
-     * @param array<int|string, mixed> $jawabanMap soal_id => opsi index
+     * @param array<int|string, mixed> $jawabanMap soal_id => jawaban
+     * @param array<int|string, int> $waktuMap soal_id => milidetik sejak soal tampil
      * @return array{ok:bool, errors:array<string,string>, skor?:int, total?:int, hasil_id?:int, detail?:list<array<string,mixed>>}
      */
-    public static function submitHasil(int $kuisId, string $namaPeserta, array $jawabanMap, ?int $siswaId = null): array
+    public static function submitHasil(int $kuisId, string $namaPeserta, array $jawabanMap, ?int $siswaId = null, array $waktuMap = []): array
     {
         $kuis = self::findById($kuisId);
         if (!$kuis || !(int) $kuis['aktif']) {
@@ -924,15 +985,28 @@ final class Kuis
             return ['ok' => false, 'errors' => ['_form' => 'Kuis belum memiliki soal.']];
         }
 
+        $metode = self::metodeNilai($kuis['metode_nilai'] ?? 'tetap');
         $skor = 0;
+        $total = 0;
         $detail = [];
         foreach ($soal as $row) {
             $sid = (int) $row['id'];
             $raw = $jawabanMap[$sid] ?? ($jawabanMap[(string) $sid] ?? null);
+            $elapsed = $waktuMap[$sid] ?? ($waktuMap[(string) $sid] ?? null);
             $graded = self::gradeJawaban($row, $raw);
-            if ($graded['ok']) {
-                $skor++;
-            }
+            $maks = self::poinSoal($row['poin'] ?? 1);
+            $timer = isset($row['timer_detik']) && (int) $row['timer_detik'] >= 5
+                ? (int) $row['timer_detik']
+                : null;
+            $didapat = self::poinDidapat(
+                $maks,
+                (bool) $graded['ok'],
+                $metode,
+                $timer,
+                $elapsed === null ? null : (int) $elapsed
+            );
+            $skor += $didapat;
+            $total += $maks;
             $detail[] = [
                 'soal_id' => $sid,
                 'tipe' => (string) ($row['tipe'] ?? 'pilihan_ganda'),
@@ -941,10 +1015,10 @@ final class Kuis
                 'pilih_teks' => $graded['pilih_teks'],
                 'benar_teks' => $graded['benar_teks'],
                 'ok' => $graded['ok'],
+                'poin' => $didapat,
+                'poin_maks' => $maks,
             ];
         }
-
-        $total = count($soal);
 
         try {
             $stmt = Database::connection()->prepare(
@@ -1150,6 +1224,11 @@ final class Kuis
         $kelasId = (int) ($data['kelas_id'] ?? 0);
         if ($kelasId > 0 && !Kelas::findForUser($kelasId, $userId)) {
             $errors['kelas_id'] = 'Kelas tidak valid.';
+        }
+
+        $metode = (string) ($data['metode_nilai'] ?? 'tetap');
+        if (!in_array($metode, ['tetap', 'kecepatan', 'gabungan'], true)) {
+            $errors['metode_nilai'] = 'Metode penilaian tidak valid.';
         }
 
         $timerRaw = trim((string) ($data['timer_menit'] ?? ''));
@@ -1521,7 +1600,7 @@ final class Kuis
     /**
      * @param array<string, mixed>|null $opsiFiles
      * @param list<array{teks:string, gambar_path:?string, gambar_url:?string}> $existingOpsi
-     * @return array{errors:array<string,string>, pertanyaan?:string, tipe?:string, opsi?:list<array{teks:string, gambar_path:?string, gambar_url:?string}>, jawaban_index?:int, jawaban_teks?:?string, timer_detik?:?int, unlink_opsi?:list<string>, new_opsi_paths?:list<string>}
+     * @return array{errors:array<string,string>, pertanyaan?:string, tipe?:string, opsi?:list<array{teks:string, gambar_path:?string, gambar_url:?string}>, jawaban_index?:int, jawaban_teks?:?string, timer_detik?:?int, poin?:int, unlink_opsi?:list<string>, new_opsi_paths?:list<string>}
      */
     private static function parseSoalInput(array $data, ?array $opsiFiles = null, array $existingOpsi = []): array
     {
@@ -1534,6 +1613,19 @@ final class Kuis
         $tipe = (string) ($data['tipe'] ?? 'pilihan_ganda');
         if (!in_array($tipe, ['pilihan_ganda', 'isian'], true)) {
             $tipe = 'pilihan_ganda';
+        }
+
+        $poinRaw = trim((string) ($data['poin'] ?? ''));
+        $poin = 1;
+        if ($poinRaw === '') {
+            $poin = 1;
+        } elseif (!ctype_digit($poinRaw)) {
+            $errors['poin'] = 'Poin soal harus angka.';
+        } else {
+            $poin = (int) $poinRaw;
+            if ($poin < 1 || $poin > 100) {
+                $errors['poin'] = 'Poin soal 1–100.';
+            }
         }
 
         $timerRaw = trim((string) ($data['timer_detik'] ?? ''));
@@ -1708,6 +1800,7 @@ final class Kuis
             'jawaban_index' => $jawabanIndex,
             'jawaban_teks' => $jawabanTeks,
             'timer_detik' => $timerDetik,
+            'poin' => $poin,
             'unlink_opsi' => $unlinkLater,
             'new_opsi_paths' => $uploadedNow,
         ];

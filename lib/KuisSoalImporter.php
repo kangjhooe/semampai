@@ -175,11 +175,15 @@ final class KuisSoalImporter
                 continue;
             }
 
-            $result = Kuis::addSoal($kuisId, $userId, [
+            $payload = [
                 'pertanyaan' => $pertanyaan,
                 'opsi' => $slots,
                 'jawaban_index' => $jawabanIndex,
-            ]);
+            ];
+            if (isset($map['poin'])) {
+                $payload['poin'] = trim((string) ($row[$map['poin']] ?? ''));
+            }
+            $result = Kuis::addSoal($kuisId, $userId, $payload);
 
             if ($result['ok']) {
                 $imported++;
@@ -189,6 +193,7 @@ final class KuisSoalImporter
                     ?? $result['errors']['pertanyaan']
                     ?? $result['errors']['opsi']
                     ?? $result['errors']['jawaban_index']
+                    ?? $result['errors']['poin']
                     ?? 'gagal disimpan';
                 $errors[] = "Baris {$line}: {$msg}";
             }
@@ -214,6 +219,7 @@ final class KuisSoalImporter
             'e' => ['opsi e', 'e', 'pilihan e', 'option e'],
             'f' => ['opsi f', 'f', 'pilihan f', 'option f'],
             'jawaban' => ['jawaban', 'kunci', 'benar', 'answer', 'kunci jawaban'],
+            'poin' => ['poin', 'skor', 'nilai', 'points'],
         ];
 
         $map = [];

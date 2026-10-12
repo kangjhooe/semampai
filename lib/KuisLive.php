@@ -369,8 +369,16 @@ final class KuisLive
             $ms = min($ms, $maxMs);
         }
 
+        $kuis = Kuis::findById((int) $sesi['kuis_id']);
+        $timer = (int) ($dbSoal['timer_detik'] ?? 0);
         $graded = Kuis::gradeJawaban($dbSoal, $rawAnswer === '' ? null : $rawAnswer);
-        $poin = $graded['ok'] ? self::speedPoints($ms) : 0;
+        $poin = Kuis::poinDidapat(
+            Kuis::poinSoal($dbSoal['poin'] ?? 1),
+            (bool) $graded['ok'],
+            (string) (is_array($kuis) ? ($kuis['metode_nilai'] ?? 'tetap') : 'tetap'),
+            $timer >= 5 ? $timer : null,
+            $ms
+        );
 
         $pdo = Database::connection();
         $pdo->beginTransaction();
@@ -559,11 +567,6 @@ final class KuisLive
         ];
     }
 
-    public static function speedPoints(int $ms): int
-    {
-        return max(100, 1000 - (int) floor($ms / 10));
-    }
-
     private static function openQuestion(array $sesi, int $index): array
     {
         $soalId = $sesi['soal_order'][$index] ?? null;
@@ -706,6 +709,7 @@ final class KuisLive
             'timer_detik' => (int) ($row['timer_detik'] ?? 0) >= 5
                 ? (int) $row['timer_detik']
                 : self::DEFAULT_TIMER,
+            'poin' => Kuis::poinSoal($row['poin'] ?? 1),
         ];
 
         if ($includeKey) {

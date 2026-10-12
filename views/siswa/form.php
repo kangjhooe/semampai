@@ -21,7 +21,7 @@ $selectedKelasTujuan = (int) (
   </div>
 </section>
 
-<section class="card stack" style="max-width: 560px;">
+<section class="card stack siswa-form" style="max-width: 560px;">
   <?php if (!empty($errors['_form'])): ?>
     <div class="alert error"><?= e($errors['_form']) ?></div>
   <?php endif; ?>
@@ -30,46 +30,49 @@ $selectedKelasTujuan = (int) (
     <?= Csrf::field() ?>
     <input type="hidden" name="kelas_id" value="<?= (int) $kelas['id'] ?>">
 
-    <div class="field">
-      <label for="nama">Nama</label>
-      <input id="nama" type="text" name="nama" value="<?= old('nama', $siswa['nama'] ?? '') ?>" required>
-      <?php if (!empty($errors['nama'])): ?><div class="error"><?= e($errors['nama']) ?></div><?php endif; ?>
-    </div>
+    <div class="siswa-form-grid">
+      <div class="field field-nama">
+        <label for="nama">Nama</label>
+        <input id="nama" type="text" name="nama" value="<?= old('nama', $siswa['nama'] ?? '') ?>" required>
+        <?php if (!empty($errors['nama'])): ?><div class="error"><?= e($errors['nama']) ?></div><?php endif; ?>
+      </div>
 
-    <div class="field">
-      <label for="nisn">NISN</label>
-      <input id="nisn" type="text" name="nisn" inputmode="numeric" maxlength="10" value="<?= old('nisn', $siswa['nisn'] ?? '') ?>" required>
-      <div class="hint">10 digit, unik</div>
-      <?php if (!empty($errors['nisn'])): ?><div class="error"><?= e($errors['nisn']) ?></div><?php endif; ?>
-    </div>
+      <div class="field field-nisn">
+        <label for="nisn">NISN</label>
+        <input id="nisn" type="text" name="nisn" inputmode="numeric" maxlength="10" value="<?= old('nisn', $siswa['nisn'] ?? '') ?>" placeholder="10 digit" required>
+        <div class="hint">10 digit, unik</div>
+        <?php if (!empty($errors['nisn'])): ?><div class="error"><?= e($errors['nisn']) ?></div><?php endif; ?>
+      </div>
 
-    <div class="grid-2">
-      <div class="field">
+      <div class="field field-tempat">
         <label for="tempat_lahir">Tempat lahir</label>
         <input id="tempat_lahir" type="text" name="tempat_lahir" value="<?= old('tempat_lahir', $siswa['tempat_lahir'] ?? '') ?>" required>
         <?php if (!empty($errors['tempat_lahir'])): ?><div class="error"><?= e($errors['tempat_lahir']) ?></div><?php endif; ?>
       </div>
-      <div class="field">
+
+      <div class="field field-tanggal">
         <label for="tanggal_lahir">Tanggal lahir</label>
         <input id="tanggal_lahir" type="date" name="tanggal_lahir" value="<?= old('tanggal_lahir', $siswa['tanggal_lahir'] ?? '') ?>" required>
         <?php if (!empty($errors['tanggal_lahir'])): ?><div class="error"><?= e($errors['tanggal_lahir']) ?></div><?php endif; ?>
       </div>
+
+      <?php if ($isEdit && count($daftarKelas) > 1): ?>
+        <div class="field field-kelas">
+          <label for="kelas_tujuan_id">Kelas</label>
+          <select id="kelas_tujuan_id" name="kelas_tujuan_id" required>
+            <?php foreach ($daftarKelas as $row): ?>
+              <option value="<?= (int) $row['id'] ?>" <?= $selectedKelasTujuan === (int) $row['id'] ? 'selected' : '' ?>>
+                <?= e($row['nama']) ?> · <?= e($row['tahun_ajaran']) ?>
+              </option>
+            <?php endforeach; ?>
+          </select>
+          <div class="hint">Ubah pilihan untuk memindahkan siswa ke kelas lain. Riwayat hafalan ikut terbawa.</div>
+          <?php if (!empty($errors['kelas_id'])): ?><div class="error"><?= e($errors['kelas_id']) ?></div><?php endif; ?>
+        </div>
+      <?php endif; ?>
     </div>
 
-    <?php if ($isEdit && count($daftarKelas) > 1): ?>
-      <div class="field">
-        <label for="kelas_tujuan_id">Kelas</label>
-        <select id="kelas_tujuan_id" name="kelas_tujuan_id" required>
-          <?php foreach ($daftarKelas as $row): ?>
-            <option value="<?= (int) $row['id'] ?>" <?= $selectedKelasTujuan === (int) $row['id'] ? 'selected' : '' ?>>
-              <?= e($row['nama']) ?> · <?= e($row['tahun_ajaran']) ?>
-            </option>
-          <?php endforeach; ?>
-        </select>
-        <div class="hint">Ubah pilihan untuk memindahkan siswa ke kelas lain. Riwayat hafalan ikut terbawa.</div>
-        <?php if (!empty($errors['kelas_id'])): ?><div class="error"><?= e($errors['kelas_id']) ?></div><?php endif; ?>
-      </div>
-    <?php elseif ($isEdit): ?>
+    <?php if ($isEdit && count($daftarKelas) <= 1): ?>
       <input type="hidden" name="kelas_tujuan_id" value="<?= (int) $kelas['id'] ?>">
     <?php endif; ?>
 

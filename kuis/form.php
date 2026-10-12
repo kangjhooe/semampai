@@ -48,6 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'jawaban_index' => (int) ($_POST['jawaban_index'] ?? -1),
             'jawaban_teks' => (string) ($_POST['jawaban_teks'] ?? ''),
             'timer_detik' => (string) ($_POST['timer_detik'] ?? ''),
+            'poin' => (string) ($_POST['poin'] ?? ''),
             'gambar_url' => (string) ($_POST['gambar_url'] ?? ''),
             'hapus_gambar' => isset($_POST['hapus_gambar']) ? 1 : 0,
         ];
@@ -114,6 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'izinkan_ulang' => isset($_POST['izinkan_ulang']) ? 1 : 0,
             'tampil_pembahasan' => isset($_POST['tampil_pembahasan']) ? 1 : 0,
             'mode_latihan' => isset($_POST['mode_latihan']) ? 1 : 0,
+            'metode_nilai' => (string) ($_POST['metode_nilai'] ?? 'tetap'),
         ];
 
         if ($kuis) {

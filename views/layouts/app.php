@@ -104,7 +104,7 @@ foreach ($navItems as $item) {
         'href' => $item['href'],
         'active' => !empty($item['active']),
         'icon' => $item['icon'],
-        'extra' => in_array($item['label'], ['Bahan Ajar', 'Kuis'], true),
+        'extra' => $item['label'] === 'Bahan Ajar',
     ];
 }
 
@@ -124,7 +124,7 @@ foreach ($bottomNav as $item) {
   <meta name="theme-color" content="#f3f6f2">
   <meta name="mobile-web-app-capable" content="yes">
   <title><?= e($pageTitle) ?></title>
-  <link rel="stylesheet" href="<?= e(app_url('assets/css/app.css')) ?>">
+  <link rel="stylesheet" href="<?= e(asset_url('assets/css/app.css')) ?>">
 </head>
 <body class="app-body">
   <div class="app-shell">
@@ -383,6 +383,6 @@ foreach ($bottomNav as $item) {
       });
     })();
   </script>
-  <script src="<?= e(app_url('assets/js/password-toggle.js')) ?>"></script>
+  <script src="<?= e(asset_url('assets/js/password-toggle.js')) ?>"></script>
 </body>
 </html>

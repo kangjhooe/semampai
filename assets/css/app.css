@@ -300,18 +300,25 @@ a:hover {
 }
 
 .password-field input {
+  position: relative;
+  z-index: 1;
   padding-right: 2.7rem;
 }
 
 .password-field input::-ms-reveal,
-.password-field input::-ms-clear {
-  display: none;
+.password-field input::-ms-clear,
+.password-field input::-webkit-credentials-auto-fill-button,
+.password-field input::-webkit-strong-password-auto-fill-button {
+  display: none !important;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .password-toggle {
   position: absolute;
   top: 50%;
   right: 0.3rem;
+  z-index: 2;
   transform: translateY(-50%);
   display: inline-flex;
   align-items: center;
@@ -324,6 +331,8 @@ a:hover {
   background: transparent;
   color: var(--muted);
   cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .password-toggle:hover,
@@ -1600,7 +1609,7 @@ body.hafalan-fokus-on .ayat-arab {
 .ayat-arab {
   font-size: 1.85rem;
   line-height: 2;
-  font-family: "Scheherazade New", "Amiri", "Traditional Arabic", "Segoe UI", serif;
+  font-family: "Scheherazade New", "Amiri", "Noto Naskh Arabic", "Arabic Typesetting", "Sakkal Majalla", "Traditional Arabic", serif;
   color: var(--ink);
 }
 
@@ -1686,7 +1695,21 @@ body.hafalan-fokus-on .ayat-arab {
 
 @media (max-width: 640px) {
   .stat-row {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.45rem;
+  }
+
+  .stat-row .stat-card {
+    padding: 0.7rem 0.55rem;
+  }
+
+  .stat-row .stat-card strong {
+    font-size: 1.15rem;
+  }
+
+  .stat-row .stat-card .muted {
+    font-size: 0.75rem;
+    line-height: 1.25;
   }
 
   .dash-stats {
@@ -2183,10 +2206,15 @@ a.cell-pill.is-link:hover {
   white-space: nowrap;
 }
 
+.bahan-filter-controls,
+.bahan-filter-search,
+.bahan-filter-query,
 .kuis-filter-search {
   display: contents;
 }
 
+.bahan-filter-submit-icon,
+.bahan-filter-add-icon,
 .kuis-filter-submit-icon {
   display: none;
 }
@@ -2222,6 +2250,7 @@ a.cell-pill.is-link:hover {
 @media (max-width: 640px) {
   .bahan-gallery {
     grid-template-columns: 1fr;
+    gap: 0.65rem;
   }
 
   .bahan-filter-add {
@@ -2539,6 +2568,117 @@ a.cell-pill.is-link:hover {
 .bahan-card-actions form {
   display: inline;
   margin: 0;
+}
+
+@media (max-width: 640px) {
+  .bahan-card {
+    flex-direction: row;
+    align-items: stretch;
+  }
+
+  .bahan-card::before {
+    inset: 0 auto 0 0;
+    width: 3px;
+    height: auto;
+    background: linear-gradient(180deg, var(--bahan-accent), color-mix(in srgb, var(--bahan-accent) 35%, white));
+  }
+
+  .bahan-card:hover {
+    transform: none;
+  }
+
+  .bahan-card-main {
+    flex-direction: row;
+    align-items: stretch;
+    min-width: 0;
+  }
+
+  .bahan-thumb {
+    flex: 0 0 7rem;
+    width: 7rem;
+    aspect-ratio: auto;
+    min-height: 7.25rem;
+  }
+
+  .app-main .bahan-thumb img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    object-fit: cover;
+  }
+
+  .bahan-thumb-fallback {
+    gap: 0.28rem;
+    padding: 0.35rem;
+  }
+
+  .bahan-thumb-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    box-shadow: none;
+  }
+
+  .bahan-thumb-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .bahan-thumb-label {
+    font-size: 0.62rem;
+  }
+
+  .bahan-type-chip {
+    top: 0.7rem;
+    left: 0.7rem;
+    padding: 0.16rem 0.38rem;
+    font-size: 0.62rem;
+  }
+
+  .bahan-play {
+    width: 32px;
+    height: 32px;
+  }
+
+  .bahan-play svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .bahan-card-body {
+    flex: 1;
+    align-content: center;
+    gap: 0.2rem;
+    padding: 0.55rem 0.65rem;
+  }
+
+  .bahan-card-body h2 {
+    font-size: 0.95rem;
+  }
+
+  .bahan-card-kelas,
+  .bahan-card-meta time {
+    font-size: 0.75rem;
+  }
+
+  .bahan-card-actions {
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 0.3rem;
+    margin-top: 0;
+    border-top: 0;
+    border-left: 1px solid rgba(213, 224, 216, 0.7);
+    background: none;
+    padding: 0.4rem 0.4rem;
+  }
+
+  .bahan-card-actions .btn-icon {
+    width: 2.05rem;
+    height: 2.05rem;
+  }
 }
 
 .bahan-viewer {
@@ -5104,7 +5244,7 @@ a.cell-pill.is-link:hover {
 }
 
 .bottom-nav-icon {
-  width: 56px;
+  width: min(56px, 100%);
   height: 32px;
   border-radius: 16px;
   display: grid;
@@ -5155,7 +5295,7 @@ a.cell-pill.is-link:hover {
 
   .bottom-nav {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     position: fixed;
     left: 0;
     right: 0;
@@ -5417,6 +5557,110 @@ a.cell-pill.is-link:hover {
     font-size: 0.78rem;
   }
 
+  .bahan-filter:not(.kuis-filter) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.45rem;
+    margin-bottom: 0.65rem;
+  }
+
+  .bahan-filter:not(.kuis-filter) .bahan-filter-controls {
+    display: flex;
+    grid-column: 1;
+    grid-row: 1;
+    gap: 0.35rem;
+    min-width: 0;
+  }
+
+  .bahan-filter:not(.kuis-filter) .bahan-filter-controls select {
+    flex: 1 1 0;
+    width: auto;
+    max-width: none;
+    min-width: 0;
+    min-height: 2.2rem;
+    padding-right: 1.2rem;
+  }
+
+  .bahan-filter:not(.kuis-filter) .bahan-filter-search {
+    display: flex;
+    grid-column: 1 / -1;
+    grid-row: 2;
+    align-items: center;
+    gap: 0.25rem;
+    min-width: 0;
+  }
+
+  .bahan-filter:not(.kuis-filter) .bahan-filter-query {
+    display: block;
+    position: relative;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .bahan-filter:not(.kuis-filter) .bahan-filter-search input[type="search"] {
+    flex: 1 1 auto;
+    width: 100%;
+    min-width: 0;
+    min-height: 2.2rem;
+    padding-right: 2.2rem;
+  }
+
+  .bahan-filter:not(.kuis-filter) .bahan-filter-query .btn-primary {
+    position: absolute;
+    right: 0.15rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1.9rem;
+    height: 1.9rem;
+    min-height: 0;
+    padding: 0;
+    border-radius: 8px;
+  }
+
+  .bahan-filter-submit-label,
+  .bahan-filter-add-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .bahan-filter-submit-icon,
+  .bahan-filter-add-icon {
+    display: block;
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .bahan-filter:not(.kuis-filter) .bahan-filter-reset {
+    position: static;
+    flex: 0 0 auto;
+    width: auto;
+    min-height: 0;
+    padding: 0.15rem 0.2rem;
+    border: 0;
+    background: transparent;
+    font-size: 0.78rem;
+  }
+
+  .bahan-filter:not(.kuis-filter) .bahan-filter-add {
+    grid-column: 2;
+    grid-row: 1;
+    margin-left: 0;
+    width: 2.2rem;
+    height: 2.2rem;
+    min-height: 0;
+    padding: 0;
+    position: relative;
+  }
+
   .sidebar-link,
   .sidebar-dropdown-item {
     min-height: 48px;
@@ -5460,12 +5704,18 @@ a.cell-pill.is-link:hover {
 
   .page-head .actions {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
     width: 100%;
+    gap: 0.4rem;
   }
 
   .page-head .actions .btn {
     width: 100%;
+    min-width: 0;
+    padding: 0.55rem 0.4rem;
+    font-size: 0.84rem;
+    line-height: 1.2;
+    text-align: center;
   }
 
   .kuis-form-head.page-head {
@@ -5574,5 +5824,612 @@ a.cell-pill.is-link:hover {
 
   .auth-benefits span {
     display: none;
+  }
+}
+
+/* Setoran di HP: ayat duluan, tombol Lancar/Ulang tetap di bawah */
+.hafalan-label-short,
+.hafalan-dock-meta,
+.siswa-queue-error {
+  display: none;
+}
+
+.siswa-queue-error[hidden] {
+  display: none !important;
+}
+
+@media (max-width: 767px) {
+  body:has(.hafalan-card) {
+    --hafalan-dock-h: 5.35rem;
+    scroll-padding-bottom: calc(var(--bottom-nav-h) + var(--hafalan-dock-h) + 0.75rem);
+  }
+
+  body:has(.hafalan-card) .app-main {
+    margin-top: 0.55rem;
+    margin-bottom: calc(var(--bottom-nav-h) + var(--hafalan-dock-h) + 0.35rem);
+  }
+
+  .hafalan-desk-only {
+    display: none;
+  }
+
+  .hafalan-label-long {
+    display: none;
+  }
+
+  .hafalan-label-short {
+    display: inline;
+  }
+
+  .hafalan-page-head {
+    margin-bottom: 0.45rem;
+    gap: 0.4rem;
+  }
+
+  .hafalan-page-head.page-head .actions {
+    display: flex;
+    flex-wrap: wrap;
+    width: 100%;
+    gap: 0.4rem;
+  }
+
+  .hafalan-page-head.page-head .actions .btn {
+    flex: 1 1 calc(50% - 0.4rem);
+    width: auto;
+    min-height: 40px;
+    padding: 0.4rem 0.55rem;
+    font-size: 0.88rem;
+  }
+
+  .hafalan-form {
+    margin-bottom: 0.45rem;
+  }
+
+  .hafalan-topbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+    gap: 0.28rem;
+  }
+
+  .hafalan-topbar .field {
+    position: relative;
+    min-width: 0;
+    gap: 0.2rem;
+  }
+
+  .hafalan-topbar .field label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .hafalan-topbar .field select {
+    padding: 0.55rem 0.7rem;
+    min-height: 44px;
+  }
+
+  .hafalan-progress-pill {
+    order: -1;
+    margin: 0;
+    font-size: 0.85rem;
+    line-height: 1.3;
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  .hafalan-card {
+    padding: 0.75rem 0.7rem 0.85rem;
+    gap: 0.55rem;
+  }
+
+  .hafalan-card > .alert {
+    padding: 0.55rem 0.7rem;
+    font-size: 0.82rem;
+  }
+
+  .siswa-queue {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 0.4rem;
+    margin-inline: -0.15rem;
+    padding: 0.1rem 0.15rem 0.15rem;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+
+  .siswa-queue::-webkit-scrollbar {
+    display: none;
+  }
+
+  .siswa-chip {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+    min-height: 40px;
+    padding: 0.4rem 0.8rem;
+  }
+
+  .siswa-queue-error:not([hidden]) {
+    display: block;
+    margin: 0;
+  }
+
+  .hafalan-card form.stack,
+  .hafalan-surat-step .stack,
+  .hafalan-status-step .stack {
+    gap: 0.5rem;
+  }
+
+  .hafalan-toolbar {
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  .jenis-toggle {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 0.2rem;
+    gap: 0.25rem;
+  }
+
+  .hafalan-toolbar .tampil-btn {
+    padding: 0.42rem 0.3rem;
+    font-size: 0.82rem;
+  }
+
+  .hafalan-toolbar-actions {
+    flex: none;
+    flex-wrap: nowrap;
+    gap: 0.3rem;
+  }
+
+  .hafalan-toolbar-actions .btn {
+    min-height: 40px;
+    padding: 0.4rem 0.55rem;
+    white-space: nowrap;
+  }
+
+  .hafalan-siswa-step,
+  .hafalan-card .step-badge,
+  .hafalan-status-step .field-label,
+  .hafalan-card .kbd-hint {
+    display: none;
+  }
+
+  .hafalan-step {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    padding: 0.15rem 0 0;
+    border-top: 0;
+  }
+
+  .hafalan-surat-step .field select,
+  .hafalan-status-step .field input {
+    padding: 0.55rem 0.7rem;
+    min-height: 44px;
+  }
+
+  .hafalan-surat-step .field label,
+  .hafalan-status-step .field label {
+    font-size: 0.78rem;
+  }
+
+  .tampil-toggle .tampil-btn {
+    padding: 0.45rem 0.4rem;
+    font-size: 0.84rem;
+  }
+
+  .ayat-toolbar {
+    gap: 0.35rem;
+  }
+
+  .ayat-toolbar .btn {
+    min-height: 36px;
+    padding: 0.3rem 0.55rem;
+  }
+
+  .ayat-toolbar #ayat-status {
+    margin-left: auto;
+    font-size: 0.75rem;
+  }
+
+  .ayat-list,
+  body.hafalan-fokus-on .ayat-list {
+    max-height: none;
+    overflow: visible;
+    border-radius: 14px;
+    background: #fffdf8;
+    border-color: #eadfce;
+  }
+
+  .ayat-item {
+    grid-template-columns: 1.35rem 1.85rem minmax(0, 1fr);
+    gap: 0.55rem;
+    align-items: center;
+    padding: 0.85rem 0.7rem;
+    min-height: 4.4rem;
+  }
+
+  .ayat-item input {
+    width: 1.3rem;
+    height: 1.3rem;
+    margin-top: 0;
+  }
+
+  .ayat-num {
+    width: 1.7rem;
+    height: 1.7rem;
+    min-width: 1.7rem;
+    margin-top: 0;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    background: #fff;
+    border: 1px solid #eadfce;
+    font-size: 0.72rem;
+  }
+
+  .ayat-item:has(input:checked) {
+    background: #e5f5ec;
+    box-shadow: inset 3px 0 0 var(--brand);
+  }
+
+  .ayat-item:has(input:checked) .ayat-num {
+    background: var(--brand);
+    border-color: var(--brand);
+    color: #fff;
+  }
+
+  .ayat-arab,
+  body.hafalan-fokus-on .ayat-arab {
+    font-size: 1.95rem;
+    line-height: 2.15;
+  }
+
+  .ayat-terjemah {
+    font-size: 0.84rem;
+    line-height: 1.4;
+  }
+
+  body.hafalan-fokus-on .hafalan-status-step {
+    position: static;
+    background: none;
+    padding-top: 0;
+    margin: 0;
+  }
+
+  .hafalan-save-dock {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: var(--bottom-nav-h);
+    z-index: 34;
+    display: grid;
+    gap: 0.28rem;
+    padding: 0.4rem 0.7rem 0.5rem;
+    background: rgba(255, 255, 255, 0.98);
+    border-top: 1px solid var(--line);
+    box-shadow: 0 -8px 24px rgba(28, 42, 34, 0.08);
+    backdrop-filter: blur(12px);
+  }
+
+  .hafalan-dock-meta {
+    display: block;
+    margin: 0;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--brand-dark);
+  }
+
+  .hafalan-save-dock .btn-status {
+    min-height: 48px;
+    border-radius: 12px;
+    font-size: 1.02rem;
+  }
+
+  .hafalan-status-step .advance-check {
+    font-size: 0.82rem;
+    line-height: 1.35;
+  }
+}
+
+.kelas-add.card {
+  padding: 0;
+}
+
+.kelas-add-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  list-style: none;
+  cursor: pointer;
+  font-weight: 650;
+  font-size: 1rem;
+  padding: 0.75rem 0.95rem;
+}
+
+.kelas-add-summary::-webkit-details-marker {
+  display: none;
+}
+
+.kelas-add-summary::marker {
+  content: "";
+}
+
+.kelas-add-summary::after {
+  content: "+";
+  flex: 0 0 auto;
+  width: 1.7rem;
+  height: 1.7rem;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--brand);
+  color: #fff;
+  font-size: 1.2rem;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.kelas-add[open] > .kelas-add-summary::after {
+  content: "\2212";
+  background: var(--brand-soft);
+  color: var(--brand-dark);
+}
+
+.kelas-add-summary:focus {
+  outline: none;
+}
+
+.kelas-add-summary:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: -2px;
+  border-radius: var(--radius);
+}
+
+.kelas-add[open] > .kelas-add-form {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0 0.95rem 0.9rem;
+}
+
+.kelas-add-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+  gap: 0.45rem 0.55rem;
+}
+
+.kelas-add-form .field {
+  gap: 0.22rem;
+}
+
+.kelas-add-form .field label {
+  font-size: 0.78rem;
+}
+
+.kelas-add-form .field input {
+  padding: 0.5rem 0.65rem;
+  border-radius: 8px;
+}
+
+.kelas-add-form .hint {
+  display: none;
+}
+
+.kelas-add-form .btn {
+  padding: 0.55rem 0.85rem;
+  border-radius: 8px;
+}
+
+.kelas-add-alert {
+  margin: 0 0.95rem 0.65rem;
+}
+
+@media (min-width: 900px) {
+  .kelas-add[open] > .kelas-add-form,
+  .kelas-add:not([open]) > .kelas-add-form,
+  .kelas-add:not([open]) > .kelas-add-alert {
+    display: grid;
+  }
+
+  .kelas-add[open] > .kelas-add-summary {
+    pointer-events: none;
+    cursor: default;
+    font-size: 1.1rem;
+    padding: 1.4rem 1.4rem 0.85rem;
+  }
+
+  .kelas-add-summary::after {
+    display: none;
+  }
+
+  .kelas-add[open] > .kelas-add-form,
+  .kelas-add:not([open]) > .kelas-add-form {
+    gap: 0.9rem;
+    padding: 0 1.4rem 1.4rem;
+  }
+
+  .kelas-add-fields {
+    grid-template-columns: 1fr;
+    gap: 0.9rem;
+  }
+
+  .kelas-add-form .field {
+    gap: 0.35rem;
+  }
+
+  .kelas-add-form .field label {
+    font-size: 0.88rem;
+  }
+
+  .kelas-add-form .field input {
+    padding: 0.75rem 0.85rem;
+    border-radius: 10px;
+  }
+
+  .kelas-add-form .hint {
+    display: block;
+  }
+
+  .kelas-add-form .btn {
+    justify-self: start;
+    padding: 0.8rem 1rem;
+    border-radius: 10px;
+  }
+
+  .kelas-add-alert {
+    margin: 0 1.4rem 0.85rem;
+  }
+}
+
+.siswa-form-grid {
+  display: grid;
+  gap: 0.9rem;
+}
+
+@media (min-width: 640px) {
+  .siswa-form-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .siswa-form-grid .field-nama,
+  .siswa-form-grid .field-nisn,
+  .siswa-form-grid .field-kelas {
+    grid-column: 1 / -1;
+  }
+}
+
+.row-sub {
+  display: none;
+}
+
+@media (max-width: 639px) {
+  .hide-sm {
+    display: none;
+  }
+
+  .row-sub {
+    display: block;
+    margin-top: 0.12rem;
+    font-size: 0.78rem;
+    line-height: 1.3;
+  }
+
+  .filter-bar .grid-2,
+  .filter-bar .grid-3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.45rem 0.5rem;
+  }
+
+  .filter-bar .grid-3 .field:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+
+  .filter-bar .field {
+    gap: 0.2rem;
+    min-width: 0;
+  }
+
+  .filter-bar .field label {
+    font-size: 0.78rem;
+  }
+
+  .filter-bar .field select,
+  .filter-bar .field input {
+    min-width: 0;
+    padding: 0.5rem 0.55rem;
+  }
+}
+
+@media (max-width: 639px) {
+  .siswa-form.card {
+    padding: 0.85rem 0.9rem;
+  }
+
+  .siswa-form.stack,
+  .siswa-form > .stack {
+    gap: 0.55rem;
+  }
+
+  .siswa-form-grid {
+    grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
+    gap: 0.45rem 0.5rem;
+    grid-auto-flow: dense;
+  }
+
+  .siswa-form-grid .field-nama,
+  .siswa-form-grid .field-tempat,
+  .siswa-form-grid .field-kelas {
+    grid-column: 1 / -1;
+  }
+
+  .siswa-form-grid .field {
+    gap: 0.22rem;
+    min-width: 0;
+  }
+
+  .siswa-form-grid .field label {
+    font-size: 0.78rem;
+  }
+
+  .siswa-form-grid .field input,
+  .siswa-form-grid .field select {
+    min-width: 0;
+    padding: 0.5rem 0.65rem;
+    border-radius: 8px;
+  }
+
+  .siswa-form .field-nisn .hint {
+    display: none;
+  }
+
+  .siswa-form .actions {
+    gap: 0.45rem;
+  }
+
+  .siswa-form .actions .btn {
+    padding: 0.55rem 0.8rem;
+    border-radius: 8px;
+  }
+
+  .siswa-toolbar.actions {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.45rem;
+  }
+
+  .siswa-toolbar.actions .btn {
+    min-width: 0;
+    padding-left: 0.55rem;
+    padding-right: 0.55rem;
+  }
+}
+
+@media (max-width: 1400px) and (min-width: 960px) {
+  .kelas-add[open] > .kelas-add-summary {
+    padding: 1.1rem 1.1rem 0.65rem;
+  }
+
+  .kelas-add[open] > .kelas-add-form,
+  .kelas-add:not([open]) > .kelas-add-form {
+    gap: 0.75rem;
+    padding: 0 1.1rem 1.1rem;
+  }
+
+  .kelas-add-fields {
+    gap: 0.75rem;
+  }
+
+  .kelas-add-alert {
+    margin: 0 1.1rem 0.65rem;
   }
 }

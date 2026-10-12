@@ -38,6 +38,13 @@ $tampilPembahasanChecked = $metaPosted
 $modeLatihanChecked = $metaPosted
     ? isset($_SESSION['_old']['mode_latihan'])
     : ($isEdit ? (int) ($kuis['mode_latihan'] ?? 0) === 1 : false);
+$metodeNilai = old(
+    'metode_nilai',
+    $isEdit ? (string) ($kuis['metode_nilai'] ?? 'tetap') : 'tetap'
+);
+if (!in_array($metodeNilai, ['tetap', 'kecepatan', 'gabungan'], true)) {
+    $metodeNilai = 'tetap';
+}
 $selectedKelas = old('kelas_id', $isEdit ? (string) ($kuis['kelas_id'] ?? '') : '');
 $timerValue = old(
     'timer_menit',
@@ -51,6 +58,7 @@ $soalFormGambarUrl = '';
 $soalFormTipe = 'pilihan_ganda';
 $soalFormJawabanTeks = '';
 $soalFormTimerDetik = '';
+$soalFormPoin = '1';
 $soalOldActive = isset($_SESSION['_old']['pertanyaan']) && !isset($_SESSION['_old']['judul']);
 if ($isEditingSoal) {
     if ($soalOldActive) {
@@ -63,6 +71,7 @@ if ($isEditingSoal) {
         $soalFormTipe = (string) ($_SESSION['_old']['tipe'] ?? 'pilihan_ganda');
         $soalFormJawabanTeks = (string) ($_SESSION['_old']['jawaban_teks'] ?? '');
         $soalFormTimerDetik = (string) ($_SESSION['_old']['timer_detik'] ?? '');
+        $soalFormPoin = (string) ($_SESSION['_old']['poin'] ?? '1');
     } else {
         $soalFormPertanyaan = (string) $editSoal['pertanyaan'];
         $soalFormOpsi = $editSoal['opsi'];
@@ -71,6 +80,7 @@ if ($isEditingSoal) {
         $soalFormTipe = (string) ($editSoal['tipe'] ?? 'pilihan_ganda');
         $soalFormJawabanTeks = (string) ($editSoal['jawaban_teks'] ?? '');
         $soalFormTimerDetik = !empty($editSoal['timer_detik']) ? (string) $editSoal['timer_detik'] : '';
+        $soalFormPoin = (string) (int) ($editSoal['poin'] ?? 1);
     }
 } elseif ($soalOldActive) {
     $soalFormPertanyaan = (string) $_SESSION['_old']['pertanyaan'];
@@ -82,6 +92,7 @@ if ($isEditingSoal) {
     $soalFormTipe = (string) ($_SESSION['_old']['tipe'] ?? 'pilihan_ganda');
     $soalFormJawabanTeks = (string) ($_SESSION['_old']['jawaban_teks'] ?? '');
     $soalFormTimerDetik = (string) ($_SESSION['_old']['timer_detik'] ?? '');
+    $soalFormPoin = (string) ($_SESSION['_old']['poin'] ?? '1');
 }
 $soalFormOpsiGambar = ['', '', '', '', '', ''];
 $soalFormOpsiUrl = ['', '', '', '', '', ''];
@@ -239,6 +250,17 @@ $currentGambar = $isEditingSoal ? Kuis::gambarPublicUrl($editSoal) : null;
         <p class="hint">Saat habis, jawaban terkirim otomatis.</p>
         <?php if (!empty($errors['timer_menit'])): ?><div class="error"><?= e($errors['timer_menit']) ?></div><?php endif; ?>
       </div>
+
+      <div class="field">
+        <label for="metode_nilai">Penilaian</label>
+        <select id="metode_nilai" name="metode_nilai">
+          <option value="tetap" <?= $metodeNilai === 'tetap' ? 'selected' : '' ?>>Tetap — benar dapat poin penuh</option>
+          <option value="kecepatan" <?= $metodeNilai === 'kecepatan' ? 'selected' : '' ?>>Kecepatan — cepat dapat lebih banyak</option>
+          <option value="gabungan" <?= $metodeNilai === 'gabungan' ? 'selected' : '' ?>>Gabungan — setengah pasti, sisanya dari kecepatan</option>
+        </select>
+        <p class="hint">Kecepatan: 100% di awal sampai 50% di akhir waktu soal. Gabungan: benar minimal 50%, di akhir waktu tetap 75%. Soal tanpa timer selalu dihitung poin penuh.</p>
+        <?php if (!empty($errors['metode_nilai'])): ?><div class="error"><?= e($errors['metode_nilai']) ?></div><?php endif; ?>
+      </div>
     </div>
 
     <div class="kuis-setting-grid">
@@ -321,6 +343,7 @@ $currentGambar = $isEditingSoal ? Kuis::gambarPublicUrl($editSoal) : null;
                   <span class="kuis-badge <?= ($soal['tipe'] ?? '') === 'isian' ? 'kuis-badge-off' : 'kuis-badge-on' ?>">
                     <?= ($soal['tipe'] ?? '') === 'isian' ? 'Isian' : 'PG' ?>
                   </span>
+                  <span class="muted"><?= (int) ($soal['poin'] ?? 1) ?> poin</span>
                   <?php if (!empty($soal['timer_detik'])): ?>
                     <span class="muted"><?= (int) $soal['timer_detik'] ?> dtk</span>
                   <?php endif; ?>
@@ -445,6 +468,13 @@ $currentGambar = $isEditingSoal ? Kuis::gambarPublicUrl($editSoal) : null;
         $fieldErrors = $soalErrors;
         require BASE_PATH . '/views/kuis/_opsi_fields.php';
         ?>
+      </div>
+
+      <div class="field" style="max-width:12rem;">
+        <label for="poin">Poin soal</label>
+        <input id="poin" type="number" name="poin" min="1" max="100" step="1" value="<?= e($soalFormPoin) ?>" required>
+        <p class="hint">Nilai maksimum jika jawaban benar. Isi lebih dari 1 supaya perbedaan kecepatan terasa.</p>
+        <?php if (!empty($soalErrors['poin'])): ?><div class="error"><?= e($soalErrors['poin']) ?></div><?php endif; ?>
       </div>
 
       <?php

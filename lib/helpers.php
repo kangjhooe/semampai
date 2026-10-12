@@ -144,6 +144,19 @@ function app_base_url(): string
     return 'https://' . substr($base, 7);
 }
 
+function asset_url(string $path): string
+{
+    $path = ltrim($path, '/');
+    $url = app_url($path);
+    $full = BASE_PATH . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $path);
+    $mtime = is_file($full) ? filemtime($full) : false;
+    if ($mtime === false) {
+        return $url;
+    }
+
+    return $url . '?v=' . $mtime;
+}
+
 function app_url(string $path = ''): string
 {
     $base = app_base_url();

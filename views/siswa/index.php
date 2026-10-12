@@ -10,7 +10,7 @@ $importErrors = $importErrors ?? [];
   <div>
     <p class="muted">Tahun ajaran <?= e($kelas['tahun_ajaran']) ?> · <a href="<?= e(app_url('siswa/index.php')) ?>">← Pilih kelas</a></p>
   </div>
-  <div class="actions">
+  <div class="actions siswa-toolbar">
     <a class="btn btn-ghost" href="<?= e(app_url('siswa/import.php?kelas_id=' . $kelas['id'])) ?>">Import Excel</a>
     <a class="btn btn-primary" href="<?= e(app_url('siswa/form.php?kelas_id=' . $kelas['id'])) ?>">Tambah siswa</a>
   </div>
@@ -41,8 +41,8 @@ $importErrors = $importErrors ?? [];
             <th class="col-num">No</th>
             <th>Nama</th>
             <th>NISN</th>
-            <th>Tempat lahir</th>
-            <th>Tanggal lahir</th>
+            <th class="hide-sm">Tempat lahir</th>
+            <th class="hide-sm">Tanggal lahir</th>
             <th></th>
           </tr>
         </thead>
@@ -50,10 +50,13 @@ $importErrors = $importErrors ?? [];
           <?php foreach ($siswa as $i => $row): ?>
             <tr>
               <td class="col-num"><?= $i + 1 ?></td>
-              <td><strong><?= e($row['nama']) ?></strong></td>
+              <td>
+                <strong><?= e($row['nama']) ?></strong>
+                <div class="muted row-sub"><?= e($row['tempat_lahir']) ?> · <?= e(date('d/m/Y', strtotime($row['tanggal_lahir']))) ?></div>
+              </td>
               <td><?= e($row['nisn']) ?></td>
-              <td><?= e($row['tempat_lahir']) ?></td>
-              <td><?= e(date('d/m/Y', strtotime($row['tanggal_lahir']))) ?></td>
+              <td class="hide-sm"><?= e($row['tempat_lahir']) ?></td>
+              <td class="hide-sm"><?= e(date('d/m/Y', strtotime($row['tanggal_lahir']))) ?></td>
               <td class="table-actions">
                 <a class="btn-icon" href="<?= e(app_url('siswa/form.php?kelas_id=' . $kelas['id'] . '&id=' . $row['id'])) ?>" title="Edit" aria-label="Edit">
                   <?= icon('edit') ?>

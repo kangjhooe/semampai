@@ -30,29 +30,41 @@ $sumberMeta = [
   </section>
 <?php else: ?>
   <form class="card bahan-filter" method="get" action="<?= e(app_url('bahan/index.php')) ?>">
-    <select id="kelas_id" name="kelas_id" aria-label="Kelas" onchange="this.form.submit()">
-      <option value="0">Semua kelas</option>
-      <?php foreach ($daftarKelas as $row): ?>
-        <option value="<?= (int) $row['id'] ?>" <?= $filterKelasId === (int) $row['id'] ? 'selected' : '' ?>>
-          <?= e($row['nama']) ?> · <?= e($row['tahun_ajaran']) ?>
-        </option>
-      <?php endforeach; ?>
-    </select>
-    <select id="sumber" name="sumber" aria-label="Jenis" onchange="this.form.submit()">
-      <option value="">Semua jenis</option>
-      <option value="upload" <?= $filterSumber === 'upload' ? 'selected' : '' ?>>Unggah Manual</option>
-      <option value="gdrive" <?= $filterSumber === 'gdrive' ? 'selected' : '' ?>>Google Drive</option>
-      <option value="onedrive" <?= $filterSumber === 'onedrive' ? 'selected' : '' ?>>OneDrive</option>
-      <option value="canva" <?= $filterSumber === 'canva' ? 'selected' : '' ?>>Canva</option>
-      <option value="youtube" <?= $filterSumber === 'youtube' ? 'selected' : '' ?>>YouTube</option>
-      <option value="vimeo" <?= $filterSumber === 'vimeo' ? 'selected' : '' ?>>Vimeo</option>
-    </select>
-    <input id="q" type="search" name="q" value="<?= e($filterQ) ?>" placeholder="Cari judul…" aria-label="Cari judul">
-    <button class="btn btn-primary" type="submit">Cari</button>
-    <?php if ($hasFilter): ?>
-      <a class="btn btn-ghost" href="<?= e(app_url('bahan/index.php')) ?>">Reset</a>
-    <?php endif; ?>
-    <a class="btn btn-primary bahan-filter-add" href="<?= e(app_url('bahan/form.php' . ($filterKelasId ? '?kelas_id=' . $filterKelasId : ''))) ?>">Tambah</a>
+    <div class="bahan-filter-controls">
+      <select id="kelas_id" name="kelas_id" aria-label="Kelas" onchange="this.form.submit()">
+        <option value="0">Semua kelas</option>
+        <?php foreach ($daftarKelas as $row): ?>
+          <option value="<?= (int) $row['id'] ?>" <?= $filterKelasId === (int) $row['id'] ? 'selected' : '' ?>>
+            <?= e($row['nama']) ?> · <?= e($row['tahun_ajaran']) ?>
+          </option>
+        <?php endforeach; ?>
+      </select>
+      <select id="sumber" name="sumber" aria-label="Jenis" onchange="this.form.submit()">
+        <option value="">Semua jenis</option>
+        <option value="upload" <?= $filterSumber === 'upload' ? 'selected' : '' ?>>Unggah Manual</option>
+        <option value="gdrive" <?= $filterSumber === 'gdrive' ? 'selected' : '' ?>>Google Drive</option>
+        <option value="onedrive" <?= $filterSumber === 'onedrive' ? 'selected' : '' ?>>OneDrive</option>
+        <option value="canva" <?= $filterSumber === 'canva' ? 'selected' : '' ?>>Canva</option>
+        <option value="youtube" <?= $filterSumber === 'youtube' ? 'selected' : '' ?>>YouTube</option>
+        <option value="vimeo" <?= $filterSumber === 'vimeo' ? 'selected' : '' ?>>Vimeo</option>
+      </select>
+    </div>
+    <div class="bahan-filter-search">
+      <div class="bahan-filter-query">
+        <input id="q" type="search" name="q" value="<?= e($filterQ) ?>" placeholder="Cari judul…" aria-label="Cari judul">
+        <button class="btn btn-primary" type="submit" aria-label="Cari">
+          <span class="bahan-filter-submit-label">Cari</span>
+          <svg class="bahan-filter-submit-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m16 16 4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <?php if ($hasFilter): ?>
+        <a class="btn btn-ghost bahan-filter-reset" href="<?= e(app_url('bahan/index.php')) ?>">Reset</a>
+      <?php endif; ?>
+    </div>
+    <a class="btn btn-primary bahan-filter-add" href="<?= e(app_url('bahan/form.php' . ($filterKelasId ? '?kelas_id=' . $filterKelasId : ''))) ?>">
+      <span class="bahan-filter-add-label">Tambah</span>
+      <svg class="bahan-filter-add-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+    </a>
   </form>
 
   <?php if ($daftar === []): ?>

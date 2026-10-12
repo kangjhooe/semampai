@@ -37,7 +37,7 @@ $kuisId = (int) ($kuis['id'] ?? $hasil['kuis_id'] ?? 0);
         <li class="kuis-review-item <?= !empty($item['ok']) ? 'is-ok' : 'is-bad' ?>">
           <div class="kuis-review-head">
             <strong><?= (int) $item['nomor'] ?>. <?= e((string) $item['pertanyaan']) ?></strong>
-            <span class="kuis-review-badge"><?= !empty($item['ok']) ? 'Benar' : 'Salah' ?></span>
+            <span class="kuis-review-badge"><?= !empty($item['ok']) ? 'Benar' : 'Salah' ?><?php if (isset($item['poin'])): ?> · <?= (int) $item['poin'] ?>/<?= (int) $item['poin_maks'] ?><?php endif; ?></span>
           </div>
           <?php if (!empty($item['gambar'])): ?>
             <img class="kuis-q-image" src="<?= e((string) $item['gambar']) ?>" alt="" loading="lazy">

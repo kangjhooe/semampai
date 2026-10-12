@@ -16,6 +16,14 @@ $success = flash('success');
 
 <section class="card stack" style="max-width:32rem;">
   <p>Soal akan sinkron untuk semua peserta. Anda yang mengatur maju soal, reveal, dan papan skor.</p>
+  <?php
+    $metodeLabel = [
+        'tetap' => 'Tetap',
+        'kecepatan' => 'Kecepatan',
+        'gabungan' => 'Gabungan',
+    ][(string) ($kuis['metode_nilai'] ?? 'tetap')] ?? 'Tetap';
+  ?>
+  <p class="muted">Penilaian sesi ini: <strong><?= e($metodeLabel) ?></strong>. Kecepatan memakai timer tiap soal; soal tanpa timer dihitung poin penuh.</p>
   <form method="post" action="<?= e(app_url('kuis/live_host.php')) ?>">
     <?= Csrf::field() ?>
     <input type="hidden" name="kuis_id" value="<?= (int) $kuis['id'] ?>">

@@ -17,27 +17,41 @@ $defaultTahun = old('tahun_ajaran', date('Y') . '/' . (date('Y') + 1));
 <?php if ($error): ?><div class="alert error"><?= e($error) ?></div><?php endif; ?>
 
 <div class="layout-split">
-  <section class="card stack">
-    <h2 class="card-title">Tambah kelas</h2>
+  <details class="card kelas-add" id="kelas-add" <?= $errors !== [] ? 'open' : '' ?>>
+    <summary class="kelas-add-summary"><span>Tambah kelas</span></summary>
     <?php if (!empty($errors['_form'])): ?>
-      <div class="alert error"><?= e($errors['_form']) ?></div>
+      <div class="alert error kelas-add-alert"><?= e($errors['_form']) ?></div>
     <?php endif; ?>
-    <form class="stack" method="post" action="<?= e(app_url('kelas/index.php')) ?>">
+    <form class="kelas-add-form" method="post" action="<?= e(app_url('kelas/index.php')) ?>">
       <?= Csrf::field() ?>
-      <div class="field">
-        <label for="nama">Nama kelas</label>
-        <input id="nama" type="text" name="nama" value="<?= old('nama') ?>" placeholder="VII-A" required>
-        <?php if (!empty($errors['nama'])): ?><div class="error"><?= e($errors['nama']) ?></div><?php endif; ?>
-      </div>
-      <div class="field">
-        <label for="tahun_ajaran">Tahun ajaran</label>
-        <input id="tahun_ajaran" type="text" name="tahun_ajaran" value="<?= $defaultTahun ?>" placeholder="2025/2026" required>
-        <div class="hint">Format: 2025/2026</div>
-        <?php if (!empty($errors['tahun_ajaran'])): ?><div class="error"><?= e($errors['tahun_ajaran']) ?></div><?php endif; ?>
+      <div class="kelas-add-fields">
+        <div class="field">
+          <label for="nama">Nama kelas</label>
+          <input id="nama" type="text" name="nama" value="<?= old('nama') ?>" placeholder="VII-A" required>
+          <?php if (!empty($errors['nama'])): ?><div class="error"><?= e($errors['nama']) ?></div><?php endif; ?>
+        </div>
+        <div class="field">
+          <label for="tahun_ajaran">Tahun ajaran</label>
+          <input id="tahun_ajaran" type="text" name="tahun_ajaran" value="<?= $defaultTahun ?>" placeholder="2025/2026" required>
+          <div class="hint">Format: 2025/2026</div>
+          <?php if (!empty($errors['tahun_ajaran'])): ?><div class="error"><?= e($errors['tahun_ajaran']) ?></div><?php endif; ?>
+        </div>
       </div>
       <button class="btn btn-primary" type="submit">Simpan kelas</button>
     </form>
-  </section>
+  </details>
+  <script>
+    (function () {
+      var box = document.getElementById('kelas-add');
+      if (!box || !window.matchMedia) return;
+      var wide = window.matchMedia('(min-width: 900px)');
+      function sync() {
+        if (wide.matches) box.open = true;
+      }
+      sync();
+      if (wide.addEventListener) wide.addEventListener('change', sync);
+    })();
+  </script>
 
   <section class="card">
     <h2 class="card-title">Daftar kelas</h2>
