@@ -79,7 +79,7 @@ final class QuranApi
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_TIMEOUT => 20,
                 CURLOPT_FOLLOWLOCATION => true,
-                CURLOPT_HTTPHEADER => ['Accept: application/json', 'User-Agent: SemampaiPAI/1.0'],
+                CURLOPT_HTTPHEADER => ['Accept: application/json', 'User-Agent: ' . self::userAgent()],
             ]);
             $body = curl_exec($ch);
             $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -91,7 +91,7 @@ final class QuranApi
             $context = stream_context_create([
                 'http' => [
                     'timeout' => 20,
-                    'header' => "Accept: application/json\r\nUser-Agent: SemampaiPAI/1.0\r\n",
+                    'header' => "Accept: application/json\r\nUser-Agent: " . self::userAgent() . "\r\n",
                 ],
             ]);
             $body = @file_get_contents($url, false, $context);
@@ -128,5 +128,12 @@ final class QuranApi
             'jumlah_ayat' => (int) ($data['jumlahAyat'] ?? count($ayat)),
             'ayat' => $ayat,
         ];
+    }
+
+    private static function userAgent(): string
+    {
+        $name = function_exists('app_slug') ? app_slug() : 'app';
+
+        return $name . 'PAI/1.0';
     }
 }

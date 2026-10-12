@@ -6,6 +6,7 @@
 /** @var int $setorHariIni */
 /** @var array $recent */
 /** @var array $daftarKelas */
+/** @var array $attention */
 
 $success = flash('success');
 $error = flash('error');
@@ -16,6 +17,10 @@ $hariIni = [
 $tanggalHariIni = $hariIni . ', ' . date('d/m/Y');
 $userInitial = mb_strtoupper(mb_substr((string) $user['nama'], 0, 1));
 $hasKelas = $jumlahKelas > 0;
+$attention = $attention ?? ['belum_setor' => [], 'sering_ulang' => [], 'tertinggal' => []];
+$hasAttention = ($attention['belum_setor'] ?? []) !== []
+    || ($attention['sering_ulang'] ?? []) !== []
+    || ($attention['tertinggal'] ?? []) !== [];
 ?>
 
 <?php if ($success): ?><div class="alert success"><?= e($success) ?></div><?php endif; ?>
@@ -26,7 +31,10 @@ $hasKelas = $jumlahKelas > 0;
     <p class="dash-kicker"><?= e($tanggalHariIni) ?></p>
     <h1>Assalamu’alaikum, <?= e($user['nama']) ?></h1>
     <p class="muted">
-      <?= e($user['nama_sekolah']) ?> · NPSN <?= e($user['npsn']) ?>
+      Sekolah aktif: <?= e($user['nama_sekolah']) ?> · NPSN <?= e($user['npsn']) ?>
+      <?php if (count($user['sekolah_list'] ?? []) > 1): ?>
+        · <a href="<?= e(app_url('profil.php?tab=sekolah')) ?>">Ganti sekolah</a>
+      <?php endif; ?>
     </p>
   </div>
   <div class="dash-hero-aside" aria-hidden="true">
@@ -62,7 +70,17 @@ $hasKelas = $jumlahKelas > 0;
       </span>
       <span class="dash-action-copy">
         <strong>Setoran hafalan</strong>
-        <span>Catat setoran di depan kelas</span>
+        <span>Antrian siswa · mode fokus · pintasan L/U</span>
+      </span>
+    </a>
+
+    <a class="dash-action" href="<?= e(app_url('hafalan/murojaah.php')) ?>">
+      <span class="dash-action-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.3-5.6M4 4v5h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+      <span class="dash-action-copy">
+        <strong>Muroja'ah</strong>
+        <span>Surat tuntas yang perlu diulang</span>
       </span>
     </a>
 
@@ -117,6 +135,74 @@ $hasKelas = $jumlahKelas > 0;
     </div>
   </section>
 <?php else: ?>
+
+  <?php if ($hasAttention): ?>
+    <section class="dash-section">
+      <div class="dash-section-head">
+        <h2>Perlu perhatian</h2>
+        <p class="muted">Siapa yang tertinggal — siap dilanjutkan dengan satu klik.</p>
+      </div>
+      <div class="attention-grid">
+        <article class="card stack attention-card">
+          <h3 class="card-title">Belum setor minggu ini</h3>
+          <?php if (($attention['belum_setor'] ?? []) === []): ?>
+            <p class="muted">Semua siswa sudah ada aktivitas minggu ini.</p>
+          <?php else: ?>
+            <ul class="attention-list">
+              <?php foreach ($attention['belum_setor'] as $row): ?>
+                <li>
+                  <div>
+                    <strong><?= e($row['nama']) ?></strong>
+                    <span class="muted"><?= e($row['kelas_nama']) ?></span>
+                  </div>
+                  <a class="btn btn-primary btn-sm" href="<?= e(app_url('hafalan/index.php?kelas_id=' . (int) $row['kelas_id'] . '&siswa_id=' . (int) $row['siswa_id'])) ?>">Setor</a>
+                </li>
+              <?php endforeach; ?>
+            </ul>
+          <?php endif; ?>
+        </article>
+
+        <article class="card stack attention-card">
+          <h3 class="card-title">Sering ulang (14 hari)</h3>
+          <?php if (($attention['sering_ulang'] ?? []) === []): ?>
+            <p class="muted">Tidak ada siswa dengan ≥2 ulang baru-baru ini.</p>
+          <?php else: ?>
+            <ul class="attention-list">
+              <?php foreach ($attention['sering_ulang'] as $row): ?>
+                <li>
+                  <div>
+                    <strong><?= e($row['nama']) ?></strong>
+                    <span class="muted"><?= e($row['kelas_nama']) ?> · <?= (int) $row['total_ulang'] ?>× ulang</span>
+                  </div>
+                  <a class="btn btn-ghost btn-sm" href="<?= e(app_url('hafalan/index.php?kelas_id=' . (int) $row['kelas_id'] . '&siswa_id=' . (int) $row['siswa_id'])) ?>">Simak</a>
+                </li>
+              <?php endforeach; ?>
+            </ul>
+          <?php endif; ?>
+        </article>
+
+        <article class="card stack attention-card">
+          <h3 class="card-title">Tertinggal target</h3>
+          <?php if (($attention['tertinggal'] ?? []) === []): ?>
+            <p class="muted">Belum ada target, atau semua sudah tuntas.</p>
+          <?php else: ?>
+            <ul class="attention-list">
+              <?php foreach ($attention['tertinggal'] as $row): ?>
+                <li>
+                  <div>
+                    <strong><?= e($row['nama']) ?></strong>
+                    <span class="muted"><?= e($row['kelas_nama']) ?> · <?= (int) $row['tuntas'] ?>/<?= (int) $row['total'] ?> surat (<?= (int) $row['persen'] ?>%)</span>
+                  </div>
+                  <a class="btn btn-ghost btn-sm" href="<?= e(app_url('hafalan/rekap.php?kelas_id=' . (int) $row['kelas_id'] . '&view=siswa')) ?>">Rekap</a>
+                </li>
+              <?php endforeach; ?>
+            </ul>
+          <?php endif; ?>
+        </article>
+      </div>
+    </section>
+  <?php endif; ?>
+
   <div class="dash-grid">
     <section class="card stack">
       <div class="dash-section-head compact">
@@ -139,6 +225,7 @@ $hasKelas = $jumlahKelas > 0;
                 <strong><?= e($row['siswa_nama']) ?></strong>
                 <span class="muted">
                   <?= e($row['kelas_nama']) ?> ·
+                  <?php if (($row['jenis'] ?? '') === 'murojaah'): ?>Muroja'ah · <?php endif; ?>
                   <?= e($row['surat_nama']) ?>
                   <?= e(Hafalan::formatAyat((int) $row['ayat_awal'], (int) $row['ayat_akhir'])) ?>
                 </span>

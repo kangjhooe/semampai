@@ -9,7 +9,7 @@ $defaultTahun = old('tahun_ajaran', date('Y') . '/' . (date('Y') + 1));
 ?>
 <section class="page-head">
   <div>
-    <p class="muted">Tambah, ubah, atau hapus kelas yang Anda ajar.</p>
+    <p class="muted">Kelas untuk sekolah aktif: <strong><?= e((string) ($user['nama_sekolah'] ?? '')) ?></strong>.</p>
   </div>
 </section>
 

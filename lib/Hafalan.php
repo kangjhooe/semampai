@@ -33,34 +33,74 @@ final class Hafalan
         $ayatAwal = (int) $data['ayat_awal'];
         $ayatAkhir = (int) $data['ayat_akhir'];
         $status = $data['status'] === 'ulang' ? 'ulang' : 'lancar';
+        $jenis = self::normalizeJenis($data['jenis'] ?? 'setoran');
         $catatan = trim((string) ($data['catatan'] ?? ''));
         if ($catatan === '') {
             $catatan = null;
         }
 
-        $stmt = Database::connection()->prepare(
-            'INSERT INTO hafalan
-                (siswa_id, user_id, surat_nomor, surat_nama, ayat_awal, ayat_akhir, status, catatan)
-             VALUES
-                (:siswa_id, :user_id, :surat_nomor, :surat_nama, :ayat_awal, :ayat_akhir, :status, :catatan)'
-        );
-        $stmt->execute([
-            'siswa_id' => $siswaId,
-            'user_id' => $userId,
-            'surat_nomor' => $suratNomor,
-            'surat_nama' => $surah['nama'],
-            'ayat_awal' => $ayatAwal,
-            'ayat_akhir' => $ayatAkhir,
-            'status' => $status,
-            'catatan' => $catatan,
-        ]);
+        // Setoran baru: lancar yang sudah tercatat tidak menambah progres.
+        // Muroja'ah boleh mengulang ayat yang sudah lancar.
+        if (
+            $jenis === 'setoran'
+            && $status === 'lancar'
+            && HafalanProgress::rangeAlreadyLancar($siswaId, $suratNomor, $ayatAwal, $ayatAkhir)
+        ) {
+            return [
+                'ok' => false,
+                'errors' => [
+                    'ayat' => 'Ayat ini sudah tercatat lancar. Centang ayat yang belum.',
+                ],
+            ];
+        }
+
+        $hasJenis = self::hasJenisColumn();
+        if ($hasJenis) {
+            $stmt = Database::connection()->prepare(
+                'INSERT INTO hafalan
+                    (siswa_id, user_id, surat_nomor, surat_nama, ayat_awal, ayat_akhir, status, jenis, catatan)
+                 VALUES
+                    (:siswa_id, :user_id, :surat_nomor, :surat_nama, :ayat_awal, :ayat_akhir, :status, :jenis, :catatan)'
+            );
+            $stmt->execute([
+                'siswa_id' => $siswaId,
+                'user_id' => $userId,
+                'surat_nomor' => $suratNomor,
+                'surat_nama' => $surah['nama'],
+                'ayat_awal' => $ayatAwal,
+                'ayat_akhir' => $ayatAkhir,
+                'status' => $status,
+                'jenis' => $jenis,
+                'catatan' => $catatan,
+            ]);
+        } else {
+            $stmt = Database::connection()->prepare(
+                'INSERT INTO hafalan
+                    (siswa_id, user_id, surat_nomor, surat_nama, ayat_awal, ayat_akhir, status, catatan)
+                 VALUES
+                    (:siswa_id, :user_id, :surat_nomor, :surat_nama, :ayat_awal, :ayat_akhir, :status, :catatan)'
+            );
+            $stmt->execute([
+                'siswa_id' => $siswaId,
+                'user_id' => $userId,
+                'surat_nomor' => $suratNomor,
+                'surat_nama' => $surah['nama'],
+                'ayat_awal' => $ayatAwal,
+                'ayat_akhir' => $ayatAkhir,
+                'status' => $status,
+                'catatan' => $catatan,
+            ]);
+        }
+
+        $jenisLabel = $jenis === 'murojaah' ? 'Muroja\'ah' : 'Setoran';
 
         return [
             'ok' => true,
             'errors' => [],
             'id' => (int) Database::connection()->lastInsertId(),
             'siswa' => $siswa,
-            'label' => self::formatLabel($surah['nama'], $ayatAwal, $ayatAkhir, $status),
+            'jenis' => $jenis,
+            'label' => $jenisLabel . ' · ' . self::formatLabel($surah['nama'], $ayatAwal, $ayatAkhir, $status),
         ];
     }
 
@@ -181,32 +221,46 @@ final class Hafalan
         return $stmt->fetchAll();
     }
 
-    public static function countTodayForUser(int $userId): int
+    public static function countTodayForUser(int $userId, ?string $npsn = null): int
     {
+        $npsn = only_digits($npsn ?? Auth::activeNpsn());
+        if ($npsn === '') {
+            return 0;
+        }
+
         $stmt = Database::connection()->prepare(
             'SELECT COUNT(*) AS total
              FROM hafalan h
+             INNER JOIN siswa s ON s.id = h.siswa_id
+             INNER JOIN kelas k ON k.id = s.kelas_id
              WHERE h.user_id = :user_id
+               AND k.npsn = :npsn
                AND DATE(h.created_at) = CURDATE()'
         );
-        $stmt->execute(['user_id' => $userId]);
+        $stmt->execute(['user_id' => $userId, 'npsn' => $npsn]);
         $row = $stmt->fetch();
 
         return (int) ($row['total'] ?? 0);
     }
 
-    public static function recentForUser(int $userId, int $limit = 6): array
+    public static function recentForUser(int $userId, int $limit = 6, ?string $npsn = null): array
     {
+        $npsn = only_digits($npsn ?? Auth::activeNpsn());
+        if ($npsn === '') {
+            return [];
+        }
+
         $stmt = Database::connection()->prepare(
             'SELECT h.*, s.nama AS siswa_nama, k.nama AS kelas_nama
              FROM hafalan h
              INNER JOIN siswa s ON s.id = h.siswa_id
              INNER JOIN kelas k ON k.id = s.kelas_id
              WHERE h.user_id = :user_id
+               AND k.npsn = :npsn
              ORDER BY h.created_at DESC, h.id DESC
              LIMIT ' . (int) $limit
         );
-        $stmt->execute(['user_id' => $userId]);
+        $stmt->execute(['user_id' => $userId, 'npsn' => $npsn]);
 
         return $stmt->fetchAll();
     }
@@ -309,6 +363,61 @@ final class Hafalan
         $statusLabel = $status === 'lancar' ? 'Lancar' : 'Ulang';
 
         return $suratNama . ' ' . self::formatAyat($ayatAwal, $ayatAkhir) . ' · ' . $statusLabel;
+    }
+
+    public static function normalizeJenis(mixed $jenis): string
+    {
+        return $jenis === 'murojaah' ? 'murojaah' : 'setoran';
+    }
+
+    /** Siswa berikutnya di daftar yang belum setor hari ini (setelah current). */
+    public static function nextSiswaId(array $siswaList, int $currentId, array $sudahSetorMap): int
+    {
+        if ($siswaList === []) {
+            return 0;
+        }
+
+        $ids = array_map(static fn ($s) => (int) $s['id'], $siswaList);
+        $start = array_search($currentId, $ids, true);
+        if ($start === false) {
+            $start = -1;
+        }
+
+        $n = count($ids);
+        for ($i = 1; $i <= $n; $i++) {
+            $idx = ((int) $start + $i) % $n;
+            $candidate = $ids[$idx];
+            if ($candidate === $currentId) {
+                continue;
+            }
+            if (!isset($sudahSetorMap[$candidate])) {
+                return $candidate;
+            }
+        }
+
+        // Semua sudah setor — putar ke berikutnya saja
+        if ($start === false || $start < 0) {
+            return $ids[0];
+        }
+
+        return $ids[(((int) $start) + 1) % $n];
+    }
+
+    private static function hasJenisColumn(): bool
+    {
+        static $cached = null;
+        if ($cached !== null) {
+            return $cached;
+        }
+
+        try {
+            $stmt = Database::connection()->query("SHOW COLUMNS FROM hafalan LIKE 'jenis'");
+            $cached = (bool) ($stmt && $stmt->fetch());
+        } catch (Throwable) {
+            $cached = false;
+        }
+
+        return $cached;
     }
 
     /**

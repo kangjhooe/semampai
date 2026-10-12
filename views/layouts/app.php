@@ -17,6 +17,12 @@ $hafalanChildren = [
         'icon' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
     ],
     [
+        'label' => 'Muroja\'ah',
+        'href' => app_url('hafalan/murojaah.php'),
+        'active' => str_ends_with($scriptPath, '/hafalan/murojaah.php'),
+        'icon' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.3-5.6M4 4v5h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    ],
+    [
         'label' => 'Riwayat',
         'href' => app_url('hafalan/riwayat.php'),
         'active' => (bool) preg_match('#/hafalan/(riwayat|siswa|ekspor)\.php$#', $scriptPath),
@@ -36,6 +42,9 @@ foreach ($hafalanChildren as $child) {
         break;
     }
 }
+
+$sekolahList = is_array($user['sekolah_list'] ?? null) ? $user['sekolah_list'] : Auth::schools();
+$activeNpsn = (string) ($user['npsn'] ?? Auth::activeNpsn());
 
 $navItems = [
     [
@@ -61,6 +70,12 @@ $navItems = [
         'href' => app_url('bahan/index.php'),
         'active' => str_contains($scriptPath, '/bahan/'),
         'icon' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4H14v16H6.5A2.5 2.5 0 0 1 4 17.5v-11Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 4h3.5A2.5 2.5 0 0 1 20 6.5v11A2.5 2.5 0 0 1 17.5 20H14V4Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 8h3M8 11h3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+    ],
+    [
+        'label' => 'Kuis',
+        'href' => app_url('kuis/index.php'),
+        'active' => str_contains($scriptPath, '/kuis/') && !preg_match('#/kuis/(ikut|main|selesai)\.php$#', $scriptPath),
+        'icon' => '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5.5A1.5 1.5 0 0 1 6.5 4h11A1.5 1.5 0 0 1 19 5.5v13A1.5 1.5 0 0 1 17.5 20h-11A1.5 1.5 0 0 1 5 18.5v-13Z" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M9 9h6M9 12.5h6M9 16h3.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="17.2" cy="6.8" r="3.2" fill="var(--surface, #fff)" stroke="currentColor" stroke-width="1.6"/><path d="M16.2 6.8h2M17.2 5.8v2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
     ],
     [
         'label' => 'Hafalan',
@@ -148,7 +163,22 @@ $navItems = [
       </nav>
 
       <div class="sidebar-footer">
-        <a class="sidebar-user" href="<?= e(app_url('profil.php')) ?>" title="Profil akun">
+        <?php if (count($sekolahList) > 1): ?>
+          <form class="school-switch" method="post" action="<?= e(app_url('sekolah/switch.php')) ?>">
+            <?= Csrf::field() ?>
+            <input type="hidden" name="redirect" value="dashboard.php">
+            <label class="school-switch-label" for="sidebar-school">Sekolah aktif</label>
+            <select id="sidebar-school" name="npsn" onchange="this.form.submit()" aria-label="Pilih sekolah aktif">
+              <?php foreach ($sekolahList as $school): ?>
+                <option value="<?= e($school['npsn']) ?>"<?= $school['npsn'] === $activeNpsn ? ' selected' : '' ?>>
+                  <?= e($school['nama_sekolah']) ?>
+                </option>
+              <?php endforeach; ?>
+            </select>
+          </form>
+        <?php endif; ?>
+
+        <a class="sidebar-user" href="<?= e(app_url('profil.php?tab=sekolah')) ?>" title="Profil & sekolah">
           <span class="sidebar-avatar"><?= e($userInitial) ?></span>
           <div class="sidebar-user-meta">
             <strong><?= e($user['nama'] ?? '') ?></strong>
@@ -171,6 +201,9 @@ $navItems = [
         </button>
         <div class="topbar-title">
           <strong><?= e($title ?? 'Dashboard') ?></strong>
+          <?php if (!empty($user['nama_sekolah'])): ?>
+            <span class="topbar-school"><?= e($user['nama_sekolah']) ?></span>
+          <?php endif; ?>
         </div>
       </header>
 
@@ -186,7 +219,7 @@ $navItems = [
       var openBtn = document.querySelector('[data-sidebar-open]');
       var closeTargets = document.querySelectorAll('[data-sidebar-close]');
       var media = window.matchMedia('(min-width: 960px)');
-      var storageKey = 'semampai.sidebarCollapsed';
+      var storageKey = <?= json_encode(app_slug() . '.sidebarCollapsed', JSON_UNESCAPED_UNICODE) ?>;
 
       function isDesktop() {
         return media.matches;

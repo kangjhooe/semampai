@@ -10,8 +10,9 @@ $userId = (int) $user['id'];
 
 $profileErrors = [];
 $passwordErrors = [];
+$schoolErrors = [];
 $activeTab = (string) ($_GET['tab'] ?? 'profil');
-if ($activeTab !== 'password') {
+if (!in_array($activeTab, ['profil', 'password', 'sekolah'], true)) {
     $activeTab = 'profil';
 }
 
@@ -33,10 +34,60 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($result['ok']) {
             flash('success', 'Password berhasil diubah.');
-            redirect('profil.php');
+            redirect('profil.php?tab=password');
         }
 
         $passwordErrors = $result['errors'];
+    } elseif ($action === 'tambah_sekolah') {
+        $activeTab = 'sekolah';
+        store_old($_POST);
+        $result = Sekolah::attachToUser(
+            $userId,
+            (string) ($_POST['npsn'] ?? ''),
+            (string) ($_POST['nama_sekolah'] ?? '')
+        );
+
+        if ($result['ok']) {
+            clear_old();
+            Auth::refreshSchoolContext(true);
+            if (!empty($_POST['jadikan_aktif'])) {
+                Auth::switchSchool((string) $result['npsn']);
+            }
+            flash('success', 'Sekolah berhasil ditambahkan.');
+            redirect('profil.php?tab=sekolah');
+        }
+
+        $schoolErrors = $result['errors'];
+    } elseif ($action === 'lepas_sekolah') {
+        $activeTab = 'sekolah';
+        $npsn = only_digits((string) ($_POST['npsn'] ?? ''));
+        $wasActive = $npsn === Auth::activeNpsn();
+        $result = Sekolah::detachFromUser($userId, $npsn);
+
+        if ($result['ok']) {
+            Auth::refreshSchoolContext(true);
+            if ($wasActive) {
+                $schools = Sekolah::forUser($userId);
+                if ($schools !== []) {
+                    Auth::switchSchool($schools[0]['npsn']);
+                }
+            }
+            flash('success', 'Sekolah dilepas dari akun.');
+            redirect('profil.php?tab=sekolah');
+        }
+
+        $schoolErrors = $result['errors'];
+        flash('error', $schoolErrors['_form'] ?? 'Gagal melepas sekolah.');
+        redirect('profil.php?tab=sekolah');
+    } elseif ($action === 'aktifkan_sekolah') {
+        $activeTab = 'sekolah';
+        $npsn = only_digits((string) ($_POST['npsn'] ?? ''));
+        if (Auth::switchSchool($npsn)) {
+            flash('success', 'Sekolah aktif diganti.');
+        } else {
+            flash('error', 'Sekolah tidak ditemukan di akun Anda.');
+        }
+        redirect('profil.php?tab=sekolah');
     } else {
         $activeTab = 'profil';
         store_old($_POST);
@@ -63,5 +114,7 @@ view('profil/form', [
     'user' => $user,
     'profileErrors' => $profileErrors,
     'passwordErrors' => $passwordErrors,
+    'schoolErrors' => $schoolErrors,
+    'sekolahList' => Sekolah::forUser($userId),
     'activeTab' => $activeTab,
 ], 'app');

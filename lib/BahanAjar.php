@@ -33,15 +33,31 @@ final class BahanAjar
      */
     public static function allForUser(int $userId, array $filters = []): array
     {
-        $sql = 'SELECT b.*, k.nama AS kelas_nama, k.tahun_ajaran
+        $sql = 'SELECT b.*
                 FROM bahan_ajar b
-                INNER JOIN kelas k ON k.id = b.kelas_id
-                WHERE k.user_id = :user_id';
+                WHERE b.user_id = :user_id';
         $params = ['user_id' => $userId];
+
+        $npsn = only_digits((string) ($filters['npsn'] ?? Auth::activeNpsn()));
+        if ($npsn !== '') {
+            $sql .= ' AND (
+                NOT EXISTS (SELECT 1 FROM bahan_ajar_kelas bk0 WHERE bk0.bahan_id = b.id)
+                OR EXISTS (
+                    SELECT 1
+                    FROM bahan_ajar_kelas bk
+                    INNER JOIN kelas kl ON kl.id = bk.kelas_id
+                    WHERE bk.bahan_id = b.id AND kl.npsn = :npsn
+                )
+            )';
+            $params['npsn'] = $npsn;
+        }
 
         $kelasId = (int) ($filters['kelas_id'] ?? 0);
         if ($kelasId > 0) {
-            $sql .= ' AND b.kelas_id = :kelas_id';
+            $sql .= ' AND EXISTS (
+                SELECT 1 FROM bahan_ajar_kelas bk
+                WHERE bk.bahan_id = b.id AND bk.kelas_id = :kelas_id
+            )';
             $params['kelas_id'] = $kelasId;
         }
 
@@ -62,38 +78,72 @@ final class BahanAjar
         $stmt = Database::connection()->prepare($sql);
         $stmt->execute($params);
 
-        return $stmt->fetchAll();
+        return self::attachKelasLists($stmt->fetchAll());
     }
 
     public static function findForUser(int $id, int $userId): ?array
     {
         $stmt = Database::connection()->prepare(
-            'SELECT b.*, k.nama AS kelas_nama, k.tahun_ajaran
+            'SELECT b.*
              FROM bahan_ajar b
-             INNER JOIN kelas k ON k.id = b.kelas_id
-             WHERE b.id = :id AND k.user_id = :user_id
+             WHERE b.id = :id AND b.user_id = :user_id
              LIMIT 1'
         );
         $stmt->execute(['id' => $id, 'user_id' => $userId]);
         $row = $stmt->fetch();
+        if (!$row) {
+            return null;
+        }
 
-        return $row ?: null;
+        $rows = self::attachKelasLists([$row]);
+
+        return $rows[0] ?? null;
     }
 
     /** Hanya untuk penyajian file setelah token/signature diverifikasi. */
     public static function findById(int $id): ?array
     {
         $stmt = Database::connection()->prepare(
-            'SELECT b.*, k.nama AS kelas_nama, k.tahun_ajaran
+            'SELECT b.*
              FROM bahan_ajar b
-             INNER JOIN kelas k ON k.id = b.kelas_id
              WHERE b.id = :id
              LIMIT 1'
         );
         $stmt->execute(['id' => $id]);
         $row = $stmt->fetch();
+        if (!$row) {
+            return null;
+        }
 
-        return $row ?: null;
+        $rows = self::attachKelasLists([$row]);
+
+        return $rows[0] ?? null;
+    }
+
+    /** @return list<int> */
+    public static function kelasIdsFor(int $bahanId): array
+    {
+        $stmt = Database::connection()->prepare(
+            'SELECT kelas_id FROM bahan_ajar_kelas WHERE bahan_id = :bahan_id ORDER BY kelas_id'
+        );
+        $stmt->execute(['bahan_id' => $bahanId]);
+
+        return array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
+    }
+
+    /**
+     * Hapus bahan yang sudah tidak terhubung ke kelas mana pun.
+     */
+    public static function deleteOrphansForUser(int $userId): int
+    {
+        $stmt = Database::connection()->prepare(
+            'DELETE b FROM bahan_ajar b
+             LEFT JOIN bahan_ajar_kelas bk ON bk.bahan_id = b.id
+             WHERE b.user_id = :user_id AND bk.bahan_id IS NULL'
+        );
+        $stmt->execute(['user_id' => $userId]);
+
+        return $stmt->rowCount();
     }
 
     /**
@@ -133,10 +183,12 @@ final class BahanAjar
         return hash_equals($expected, $sig);
     }
 
-    public static function create(int $kelasId, int $userId, array $data, ?array $file): array
+    public static function create(int $userId, array $data, ?array $file): array
     {
-        if (!Kelas::findForUser($kelasId, $userId)) {
-            return ['ok' => false, 'errors' => ['kelas_id' => 'Kelas tidak valid.']];
+        $kelasIds = self::normalizeKelasIds($data['kelas_ids'] ?? []);
+        $kelasError = self::validateKelasIds($kelasIds, $userId);
+        if ($kelasError !== null) {
+            return ['ok' => false, 'errors' => ['kelas_ids' => $kelasError]];
         }
 
         $errors = self::validate($data, $file);
@@ -169,15 +221,17 @@ final class BahanAjar
             $embedUrl = $resolved['embed_url'];
         }
 
+        $db = Database::connection();
         try {
-            $stmt = Database::connection()->prepare(
+            $db->beginTransaction();
+            $kuisId = self::nullableKuisId($data, $userId);
+            $stmt = $db->prepare(
                 'INSERT INTO bahan_ajar
-                    (kelas_id, user_id, judul, sumber, file_path, file_mime, file_ext, original_url, embed_url)
+                    (user_id, judul, sumber, file_path, file_mime, file_ext, original_url, embed_url, kuis_id)
                  VALUES
-                    (:kelas_id, :user_id, :judul, :sumber, :file_path, :file_mime, :file_ext, :original_url, :embed_url)'
+                    (:user_id, :judul, :sumber, :file_path, :file_mime, :file_ext, :original_url, :embed_url, :kuis_id)'
             );
             $stmt->execute([
-                'kelas_id' => $kelasId,
                 'user_id' => $userId,
                 'judul' => $judul,
                 'sumber' => $sumber,
@@ -186,10 +240,18 @@ final class BahanAjar
                 'file_ext' => $fileExt,
                 'original_url' => $originalUrl,
                 'embed_url' => $embedUrl,
+                'kuis_id' => $kuisId,
             ]);
 
-            return ['ok' => true, 'errors' => [], 'id' => (int) Database::connection()->lastInsertId()];
+            $id = (int) $db->lastInsertId();
+            self::syncKelas($id, $kelasIds);
+            $db->commit();
+
+            return ['ok' => true, 'errors' => [], 'id' => $id];
         } catch (PDOException $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
             if ($filePath !== null) {
                 self::unlinkRelative($filePath);
             }
@@ -205,10 +267,10 @@ final class BahanAjar
             return ['ok' => false, 'errors' => ['_form' => 'Bahan ajar tidak ditemukan.']];
         }
 
-        $kelasId = (int) ($data['kelas_id'] ?? 0);
-        $kelas = Kelas::findForUser($kelasId, $userId);
-        if (!$kelas) {
-            return ['ok' => false, 'errors' => ['kelas_id' => 'Kelas tidak valid.']];
+        $kelasIds = self::normalizeKelasIds($data['kelas_ids'] ?? []);
+        $kelasError = self::validateKelasIds($kelasIds, $userId);
+        if ($kelasError !== null) {
+            return ['ok' => false, 'errors' => ['kelas_ids' => $kelasError]];
         }
 
         $hasNewFile = $file && ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE;
@@ -259,22 +321,23 @@ final class BahanAjar
             $fileExt = null;
         }
 
+        $db = Database::connection();
         try {
-            $stmt = Database::connection()->prepare(
-                'UPDATE bahan_ajar b
-                 INNER JOIN kelas k ON k.id = b.kelas_id
-                 SET b.kelas_id = :kelas_id,
-                     b.judul = :judul,
-                     b.sumber = :sumber,
-                     b.file_path = :file_path,
-                     b.file_mime = :file_mime,
-                     b.file_ext = :file_ext,
-                     b.original_url = :original_url,
-                     b.embed_url = :embed_url
-                 WHERE b.id = :id AND k.user_id = :user_id'
+            $db->beginTransaction();
+            $kuisId = self::nullableKuisId($data, $userId);
+            $stmt = $db->prepare(
+                'UPDATE bahan_ajar
+                 SET judul = :judul,
+                     sumber = :sumber,
+                     file_path = :file_path,
+                     file_mime = :file_mime,
+                     file_ext = :file_ext,
+                     original_url = :original_url,
+                     embed_url = :embed_url,
+                     kuis_id = :kuis_id
+                 WHERE id = :id AND user_id = :user_id'
             );
             $stmt->execute([
-                'kelas_id' => $kelasId,
                 'judul' => $judul,
                 'sumber' => $sumber,
                 'file_path' => $filePath,
@@ -282,9 +345,13 @@ final class BahanAjar
                 'file_ext' => $fileExt,
                 'original_url' => $originalUrl,
                 'embed_url' => $embedUrl,
+                'kuis_id' => $kuisId,
                 'id' => $id,
                 'user_id' => $userId,
             ]);
+
+            self::syncKelas($id, $kelasIds);
+            $db->commit();
 
             if ($removeOldFile && $oldFilePath !== '' && $oldFilePath !== $filePath) {
                 self::unlinkRelative($oldFilePath);
@@ -292,6 +359,9 @@ final class BahanAjar
 
             return ['ok' => true, 'errors' => []];
         } catch (PDOException $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
             if ($newStoredPath !== null) {
                 self::unlinkRelative($newStoredPath);
             }
@@ -308,9 +378,7 @@ final class BahanAjar
         }
 
         $stmt = Database::connection()->prepare(
-            'DELETE b FROM bahan_ajar b
-             INNER JOIN kelas k ON k.id = b.kelas_id
-             WHERE b.id = :id AND k.user_id = :user_id'
+            'DELETE FROM bahan_ajar WHERE id = :id AND user_id = :user_id'
         );
         $stmt->execute(['id' => $id, 'user_id' => $userId]);
 
@@ -394,6 +462,127 @@ final class BahanAjar
             'original_url' => $originalUrl,
             'embed_url' => $embedUrl,
         ];
+    }
+
+    /**
+     * @param list<array<string, mixed>> $rows
+     * @return list<array<string, mixed>>
+     */
+    private static function attachKelasLists(array $rows): array
+    {
+        if ($rows === []) {
+            return [];
+        }
+
+        $ids = [];
+        foreach ($rows as $row) {
+            $id = (int) ($row['id'] ?? 0);
+            if ($id > 0) {
+                $ids[] = $id;
+            }
+        }
+        $ids = array_values(array_unique($ids));
+        if ($ids === []) {
+            return $rows;
+        }
+
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $stmt = Database::connection()->prepare(
+            "SELECT bk.bahan_id, k.id, k.nama, k.tahun_ajaran
+             FROM bahan_ajar_kelas bk
+             INNER JOIN kelas k ON k.id = bk.kelas_id
+             WHERE bk.bahan_id IN ({$placeholders})
+             ORDER BY k.nama ASC, k.tahun_ajaran ASC, k.id ASC"
+        );
+        $stmt->execute($ids);
+
+        /** @var array<int, list<array{id: int, nama: string, tahun_ajaran: string}>> $map */
+        $map = [];
+        foreach ($stmt->fetchAll() as $kelasRow) {
+            $bahanId = (int) $kelasRow['bahan_id'];
+            $map[$bahanId][] = [
+                'id' => (int) $kelasRow['id'],
+                'nama' => (string) $kelasRow['nama'],
+                'tahun_ajaran' => (string) $kelasRow['tahun_ajaran'],
+            ];
+        }
+
+        foreach ($rows as &$row) {
+            $bahanId = (int) ($row['id'] ?? 0);
+            $list = $map[$bahanId] ?? [];
+            $row['kelas_list'] = $list;
+            $row['kelas_ids'] = array_map(static fn (array $k): int => $k['id'], $list);
+            $names = array_map(static fn (array $k): string => $k['nama'], $list);
+            $row['kelas_nama'] = implode(', ', $names);
+            $years = array_values(array_unique(array_map(
+                static fn (array $k): string => $k['tahun_ajaran'],
+                $list
+            )));
+            $row['tahun_ajaran'] = implode(', ', $years);
+            $row['kelas_label'] = implode(', ', array_map(
+                static fn (array $k): string => $k['nama'] . ' · ' . $k['tahun_ajaran'],
+                $list
+            ));
+        }
+        unset($row);
+
+        return $rows;
+    }
+
+    /** @param mixed $raw @return list<int> */
+    private static function normalizeKelasIds(mixed $raw): array
+    {
+        if (!is_array($raw)) {
+            return [];
+        }
+
+        $ids = [];
+        foreach ($raw as $value) {
+            $id = (int) $value;
+            if ($id > 0) {
+                $ids[$id] = $id;
+            }
+        }
+
+        return array_values($ids);
+    }
+
+    /** @param list<int> $kelasIds */
+    private static function validateKelasIds(array $kelasIds, int $userId): ?string
+    {
+        if ($kelasIds === []) {
+            return 'Pilih minimal satu kelas.';
+        }
+
+        foreach ($kelasIds as $kelasId) {
+            if (!Kelas::findForUser($kelasId, $userId)) {
+                return 'Ada kelas yang tidak valid.';
+            }
+        }
+
+        return null;
+    }
+
+    /** @param list<int> $kelasIds */
+    private static function syncKelas(int $bahanId, array $kelasIds): void
+    {
+        $db = Database::connection();
+        $del = $db->prepare('DELETE FROM bahan_ajar_kelas WHERE bahan_id = :bahan_id');
+        $del->execute(['bahan_id' => $bahanId]);
+
+        if ($kelasIds === []) {
+            return;
+        }
+
+        $ins = $db->prepare(
+            'INSERT INTO bahan_ajar_kelas (bahan_id, kelas_id) VALUES (:bahan_id, :kelas_id)'
+        );
+        foreach ($kelasIds as $kelasId) {
+            $ins->execute([
+                'bahan_id' => $bahanId,
+                'kelas_id' => $kelasId,
+            ]);
+        }
     }
 
     /** @return array<string, string> */
@@ -494,6 +683,19 @@ final class BahanAjar
             'mime' => $mime,
             'ext' => $ext,
         ];
+    }
+
+    private static function nullableKuisId(array $data, int $userId): ?int
+    {
+        $kuisId = (int) ($data['kuis_id'] ?? 0);
+        if ($kuisId <= 0) {
+            return null;
+        }
+        if (!Kuis::findForUser($kuisId, $userId)) {
+            return null;
+        }
+
+        return $kuisId;
     }
 
     private static function unlinkRelative(string $relativePath): void

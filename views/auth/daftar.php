@@ -8,7 +8,7 @@ $errors = $errors ?? [];
   <div class="brand">
     <span class="brand-mark"><?= e($initial) ?></span>
     <h1>Daftar di <?= e($appName) ?></h1>
-    <p>Isi data guru dan sekolah. NIK unik per guru; NPSN unik per sekolah.</p>
+    <p>Isi data guru dan sekolah pertama. NIK unik per guru; nanti bisa menambah sekolah lain dari profil.</p>
   </div>
 
   <?php if (!empty($errors['_form'])): ?>

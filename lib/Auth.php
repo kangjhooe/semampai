@@ -7,10 +7,9 @@ final class Auth
     public static function attempt(string $email, string $password): bool
     {
         $stmt = Database::connection()->prepare(
-            'SELECT u.*, s.nama_sekolah
-             FROM users u
-             INNER JOIN sekolah s ON s.npsn = u.npsn
-             WHERE u.email = :email
+            'SELECT *
+             FROM users
+             WHERE email = :email
              LIMIT 1'
         );
         $stmt->execute(['email' => $email]);
@@ -20,8 +19,12 @@ final class Auth
             return false;
         }
 
-        self::login($user);
-        return true;
+        try {
+            self::login($user);
+            return true;
+        } catch (Throwable $e) {
+            return false;
+        }
     }
 
     public static function register(array $data): array
@@ -50,38 +53,35 @@ final class Auth
         try {
             $pdo->beginTransaction();
 
-            $sekolah = $pdo->prepare('SELECT npsn, nama_sekolah FROM sekolah WHERE npsn = :npsn LIMIT 1');
-            $sekolah->execute(['npsn' => $npsn]);
-            $existingSchool = $sekolah->fetch();
-
-            if (!$existingSchool) {
-                $insertSchool = $pdo->prepare(
-                    'INSERT INTO sekolah (npsn, nama_sekolah) VALUES (:npsn, :nama_sekolah)'
-                );
-                $insertSchool->execute([
-                    'npsn' => $npsn,
-                    'nama_sekolah' => trim($data['nama_sekolah']),
-                ]);
-                $namaSekolah = trim($data['nama_sekolah']);
-            } else {
-                $namaSekolah = $existingSchool['nama_sekolah'];
+            $ensured = Sekolah::ensure($npsn, (string) $data['nama_sekolah']);
+            if (!$ensured['ok']) {
+                $pdo->rollBack();
+                return ['ok' => false, 'errors' => $ensured['errors']];
             }
 
+            $npsn = (string) $ensured['npsn'];
+            $namaSekolah = (string) $ensured['nama_sekolah'];
+
             $insertUser = $pdo->prepare(
-                'INSERT INTO users (nik, nama, email, password_hash, npsn, no_wa, role)
-                 VALUES (:nik, :nama, :email, :password_hash, :npsn, :no_wa, :role)'
+                'INSERT INTO users (nik, nama, email, password_hash, no_wa, role)
+                 VALUES (:nik, :nama, :email, :password_hash, :no_wa, :role)'
             );
             $insertUser->execute([
                 'nik' => $nik,
                 'nama' => trim($data['nama']),
                 'email' => strtolower(trim($data['email'])),
                 'password_hash' => password_hash($data['password'], PASSWORD_DEFAULT),
-                'npsn' => $npsn,
                 'no_wa' => only_digits($data['no_wa']),
                 'role' => 'guru',
             ]);
 
             $userId = (int) $pdo->lastInsertId();
+
+            $link = $pdo->prepare(
+                'INSERT INTO user_sekolah (user_id, npsn) VALUES (:user_id, :npsn)'
+            );
+            $link->execute(['user_id' => $userId, 'npsn' => $npsn]);
+
             $pdo->commit();
 
             $user = [
@@ -89,15 +89,13 @@ final class Auth
                 'nik' => $nik,
                 'nama' => trim($data['nama']),
                 'email' => strtolower(trim($data['email'])),
-                'npsn' => $npsn,
                 'no_wa' => only_digits($data['no_wa']),
                 'role' => 'guru',
-                'nama_sekolah' => $namaSekolah,
             ];
 
-            self::login($user);
+            self::login($user, $npsn);
 
-            return ['ok' => true, 'errors' => [], 'user' => $user];
+            return ['ok' => true, 'errors' => [], 'user' => self::user()];
         } catch (Throwable $e) {
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();
@@ -107,18 +105,42 @@ final class Auth
         }
     }
 
-    public static function login(array $user): void
+    public static function login(array $user, ?string $preferredNpsn = null): void
     {
         session_regenerate_id(true);
+
+        $userId = (int) $user['id'];
+        $schools = Sekolah::forUser($userId);
+        if ($schools === []) {
+            // Akun lama tanpa pivot — jangan biarkan session setengah jalan.
+            $_SESSION = [];
+            throw new RuntimeException('Akun belum terhubung ke sekolah. Jalankan migrasi multi-sekolah.');
+        }
+
+        $activeNpsn = only_digits((string) ($preferredNpsn ?? ''));
+        $activeName = '';
+        foreach ($schools as $school) {
+            if ($school['npsn'] === $activeNpsn) {
+                $activeName = $school['nama_sekolah'];
+                break;
+            }
+        }
+
+        if ($activeName === '') {
+            $activeNpsn = $schools[0]['npsn'];
+            $activeName = $schools[0]['nama_sekolah'];
+        }
+
         $_SESSION['user'] = [
-            'id' => (int) $user['id'],
+            'id' => $userId,
             'nik' => $user['nik'],
             'nama' => $user['nama'],
             'email' => $user['email'],
-            'npsn' => $user['npsn'],
             'no_wa' => $user['no_wa'],
             'role' => $user['role'],
-            'nama_sekolah' => $user['nama_sekolah'] ?? '',
+            'npsn' => $activeNpsn,
+            'nama_sekolah' => $activeName,
+            'sekolah_list' => $schools,
         ];
     }
 
@@ -139,13 +161,97 @@ final class Auth
 
     public static function user(): ?array
     {
-        return self::check() ? $_SESSION['user'] : null;
+        if (!self::check()) {
+            return null;
+        }
+
+        self::refreshSchoolContext();
+
+        return $_SESSION['user'];
+    }
+
+    public static function activeNpsn(): string
+    {
+        $user = self::user();
+        return only_digits((string) ($user['npsn'] ?? ''));
+    }
+
+    /**
+     * @return list<array{npsn: string, nama_sekolah: string}>
+     */
+    public static function schools(): array
+    {
+        $user = self::user();
+        if (!$user) {
+            return [];
+        }
+
+        return $user['sekolah_list'] ?? [];
+    }
+
+    public static function switchSchool(string $npsn): bool
+    {
+        if (!self::check()) {
+            return false;
+        }
+
+        $npsn = only_digits($npsn);
+        $userId = (int) $_SESSION['user']['id'];
+        if (!Sekolah::userHas($userId, $npsn)) {
+            return false;
+        }
+
+        $school = Sekolah::find($npsn);
+        if (!$school) {
+            return false;
+        }
+
+        $_SESSION['user']['npsn'] = $school['npsn'];
+        $_SESSION['user']['nama_sekolah'] = $school['nama_sekolah'];
+        self::refreshSchoolContext(true);
+
+        return true;
+    }
+
+    public static function refreshSchoolContext(bool $forceReloadList = false): void
+    {
+        if (!isset($_SESSION['user']['id'])) {
+            return;
+        }
+
+        $userId = (int) $_SESSION['user']['id'];
+        if ($forceReloadList || !isset($_SESSION['user']['sekolah_list']) || !is_array($_SESSION['user']['sekolah_list'])) {
+            $_SESSION['user']['sekolah_list'] = Sekolah::forUser($userId);
+        }
+
+        $schools = $_SESSION['user']['sekolah_list'];
+        if ($schools === []) {
+            return;
+        }
+
+        $active = only_digits((string) ($_SESSION['user']['npsn'] ?? ''));
+        foreach ($schools as $school) {
+            if ($school['npsn'] === $active) {
+                $_SESSION['user']['nama_sekolah'] = $school['nama_sekolah'];
+                return;
+            }
+        }
+
+        $_SESSION['user']['npsn'] = $schools[0]['npsn'];
+        $_SESSION['user']['nama_sekolah'] = $schools[0]['nama_sekolah'];
     }
 
     public static function requireLogin(): void
     {
         if (!self::check()) {
             flash('error', 'Silakan masuk terlebih dahulu.');
+            redirect('index.php');
+        }
+
+        self::refreshSchoolContext();
+        if (self::activeNpsn() === '') {
+            flash('error', 'Akun belum terhubung ke sekolah. Hubungi admin atau jalankan migrasi.');
+            self::logout();
             redirect('index.php');
         }
     }
@@ -291,13 +397,8 @@ final class Auth
             $errors['nik'] = 'NIK harus 16 digit angka.';
         }
 
-        if (strlen($npsn) !== 8) {
-            $errors['npsn'] = 'NPSN harus 8 digit angka.';
-        }
-
-        if ($namaSekolah === '') {
-            $errors['nama_sekolah'] = 'Nama sekolah wajib diisi.';
-        }
+        $schoolErrors = Sekolah::validateSchoolInput($npsn, $namaSekolah);
+        $errors = array_merge($errors, $schoolErrors);
 
         if (strlen($noWa) < 10 || strlen($noWa) > 15) {
             $errors['no_wa'] = 'Nomor WA tidak valid.';

@@ -16,6 +16,8 @@ foreach ($daftarKelas as $kelas) {
     $jumlahSiswa += (int) $kelas['jumlah_siswa'];
 }
 
+$attention = HafalanInsight::attentionForUser($userId, 5);
+
 view('dashboard', [
     'title' => 'Beranda',
     'user' => $user,
@@ -24,4 +26,5 @@ view('dashboard', [
     'setorHariIni' => Hafalan::countTodayForUser($userId),
     'recent' => Hafalan::recentForUser($userId, 6),
     'daftarKelas' => $daftarKelas,
+    'attention' => $attention,
 ], 'app');

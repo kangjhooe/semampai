@@ -24,64 +24,68 @@ if ($id > 0) {
     }
 }
 
-$kelasId = (int) ($_GET['kelas_id'] ?? $_POST['kelas_id'] ?? 0);
-if ($kelasId <= 0) {
-    $kelasId = $bahan ? (int) $bahan['kelas_id'] : (int) $daftarKelas[0]['id'];
+/** @var list<int> $selectedKelasIds */
+$selectedKelasIds = [];
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $raw = $_POST['kelas_ids'] ?? [];
+    if (is_array($raw)) {
+        foreach ($raw as $value) {
+            $kid = (int) $value;
+            if ($kid > 0) {
+                $selectedKelasIds[] = $kid;
+            }
+        }
+    }
+} elseif ($bahan) {
+    $selectedKelasIds = array_map('intval', $bahan['kelas_ids'] ?? []);
+} else {
+    $prefill = (int) ($_GET['kelas_id'] ?? 0);
+    if ($prefill > 0 && Kelas::findForUser($prefill, $userId)) {
+        $selectedKelasIds = [$prefill];
+    } elseif ($daftarKelas !== []) {
+        $selectedKelasIds = [(int) $daftarKelas[0]['id']];
+    }
 }
-
-$kelas = Kelas::findForUser($kelasId, $userId);
-if (!$kelas) {
-    flash('error', 'Kelas tidak ditemukan.');
-    redirect('bahan/index.php');
-}
+$selectedKelasIds = array_values(array_unique($selectedKelasIds));
 
 $errors = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!Csrf::verify($_POST['_token'] ?? null)) {
         flash('error', 'Sesi formulir tidak valid.');
-        redirect('bahan/form.php' . ($bahan ? '?id=' . $id : '?kelas_id=' . $kelasId));
+        redirect('bahan/form.php' . ($bahan ? '?id=' . $id : ''));
     }
 
     store_old($_POST);
-    $kelasId = (int) ($_POST['kelas_id'] ?? 0);
-    $kelas = Kelas::findForUser($kelasId, $userId);
 
-    if (!$kelas) {
-        $errors['_form'] = 'Kelas tidak valid.';
-        $kelas = Kelas::findForUser(
-            $bahan ? (int) $bahan['kelas_id'] : (int) $daftarKelas[0]['id'],
-            $userId
-        );
-        $kelasId = (int) ($kelas['id'] ?? 0);
-    } else {
-        $payload = [
-            'kelas_id' => $kelasId,
-            'judul' => (string) ($_POST['judul'] ?? ''),
-            'sumber' => (string) ($_POST['sumber'] ?? ''),
-            'original_url' => (string) ($_POST['original_url'] ?? ''),
-        ];
-        $file = $_FILES['file'] ?? null;
+    $payload = [
+        'kelas_ids' => $selectedKelasIds,
+        'judul' => (string) ($_POST['judul'] ?? ''),
+        'sumber' => (string) ($_POST['sumber'] ?? ''),
+        'original_url' => (string) ($_POST['original_url'] ?? ''),
+        'kuis_id' => (int) ($_POST['kuis_id'] ?? 0),
+    ];
+    $file = $_FILES['file'] ?? null;
 
-        $result = $bahan
-            ? BahanAjar::update($id, $userId, $payload, $file)
-            : BahanAjar::create($kelasId, $userId, $payload, $file);
+    $result = $bahan
+        ? BahanAjar::update($id, $userId, $payload, $file)
+        : BahanAjar::create($userId, $payload, $file);
 
-        if ($result['ok']) {
-            clear_old();
-            flash('success', $bahan ? 'Bahan ajar berhasil diperbarui.' : 'Bahan ajar berhasil ditambahkan.');
-            redirect('bahan/index.php');
-        }
-
-        $errors = $result['errors'];
+    if ($result['ok']) {
+        clear_old();
+        flash('success', $bahan ? 'Bahan ajar berhasil diperbarui.' : 'Bahan ajar berhasil ditambahkan.');
+        redirect('bahan/index.php');
     }
+
+    $errors = $result['errors'];
 }
 
 view('bahan/form', [
     'title' => $bahan ? 'Edit Bahan Ajar' : 'Tambah Bahan Ajar',
     'user' => $user,
-    'kelas' => $kelas,
     'daftarKelas' => $daftarKelas,
+    'daftarKuis' => Kuis::allForUser($userId),
+    'selectedKelasIds' => $selectedKelasIds,
     'bahan' => $bahan,
     'errors' => $errors,
 ], 'app');

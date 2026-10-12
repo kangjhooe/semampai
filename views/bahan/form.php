@@ -1,17 +1,17 @@
 <?php
-/** @var array $kelas */
 /** @var array $daftarKelas */
+/** @var array $daftarKuis */
+/** @var list<int> $selectedKelasIds */
 /** @var array|null $bahan */
 /** @var array<string, string> $errors */
 $errors = $errors ?? [];
 $daftarKelas = $daftarKelas ?? [];
+$daftarKuis = $daftarKuis ?? [];
+$selectedKelasIds = array_map('intval', $selectedKelasIds ?? []);
+$selectedMap = array_fill_keys($selectedKelasIds, true);
 $bahan = $bahan ?? null;
+$selectedKuisId = (int) ($_SESSION['_old']['kuis_id'] ?? ($bahan['kuis_id'] ?? 0));
 $isEdit = $bahan !== null;
-$selectedKelasId = (int) (
-    $_SERVER['REQUEST_METHOD'] === 'POST'
-        ? ($_POST['kelas_id'] ?? $kelas['id'] ?? 0)
-        : ($kelas['id'] ?? 0)
-);
 $sumber = (string) ($_SESSION['_old']['sumber'] ?? '');
 if ($sumber === '' && $bahan) {
     $sumber = (string) ($bahan['sumber'] ?? 'upload');
@@ -33,8 +33,8 @@ if ($isEdit && ($bahan['sumber'] ?? '') === 'upload' && !empty($bahan['file_path
   <div>
     <p class="muted">
       <?= $isEdit
-        ? 'Perbarui judul, kelas, atau sumber materi.'
-        : 'Unggah file atau tautkan Drive, OneDrive, Canva, YouTube, dan Vimeo untuk kelas Anda.' ?>
+        ? 'Perbarui judul, kelas tujuan, atau sumber materi.'
+        : 'Unggah file atau tautkan Drive, OneDrive, Canva, YouTube, dan Vimeo. Satu bahan bisa dipakai banyak kelas.' ?>
     </p>
   </div>
   <a class="btn btn-ghost" href="<?= e(app_url('bahan/index.php')) ?>">← Galeri</a>
@@ -58,35 +58,47 @@ if ($isEdit && ($bahan['sumber'] ?? '') === 'upload' && !empty($bahan['file_path
       <input type="hidden" name="id" value="<?= (int) $bahan['id'] ?>">
     <?php endif; ?>
 
-    <div class="bahan-form-grid">
-      <div class="field">
-        <label for="kelas_id">Kelas tujuan</label>
-        <select id="kelas_id" name="kelas_id" required>
-          <?php foreach ($daftarKelas as $row): ?>
-            <option value="<?= (int) $row['id'] ?>" <?= $selectedKelasId === (int) $row['id'] ? 'selected' : '' ?>>
-              <?= e($row['nama']) ?> · <?= e($row['tahun_ajaran']) ?>
-            </option>
-          <?php endforeach; ?>
-        </select>
-        <?php if (!empty($errors['kelas_id'])): ?><div class="error"><?= e($errors['kelas_id']) ?></div><?php endif; ?>
+    <div class="field">
+      <div class="bahan-form-label-row">
+        <label for="judul">Judul materi</label>
+        <span class="bahan-char-count" id="judul-count" aria-live="polite"><?= mb_strlen($judulRaw) ?>/200</span>
       </div>
+      <input
+        id="judul"
+        type="text"
+        name="judul"
+        maxlength="200"
+        value="<?= old('judul', (string) ($bahan['judul'] ?? '')) ?>"
+        placeholder="Contoh: Pengantar Aljabar Linear"
+        required
+        autocomplete="off"
+      >
+      <?php if (!empty($errors['judul'])): ?><div class="error"><?= e($errors['judul']) ?></div><?php endif; ?>
+    </div>
 
-      <div class="field">
-        <div class="bahan-form-label-row">
-          <label for="judul">Judul materi</label>
-          <span class="bahan-char-count" id="judul-count" aria-live="polite"><?= mb_strlen($judulRaw) ?>/200</span>
-        </div>
-        <input
-          id="judul"
-          type="text"
-          name="judul"
-          maxlength="200"
-          value="<?= old('judul', (string) ($bahan['judul'] ?? '')) ?>"
-          placeholder="Contoh: Pengantar Aljabar Linear"
-          required
-          autocomplete="off"
-        >
-        <?php if (!empty($errors['judul'])): ?><div class="error"><?= e($errors['judul']) ?></div><?php endif; ?>
+    <div class="field">
+      <label>Bagikan ke kelas</label>
+      <p class="hint">Centang semua kelas yang memakai materi yang sama, misalnya 7A dan 7B.</p>
+      <?php if (!empty($errors['kelas_ids'])): ?><div class="error"><?= e($errors['kelas_ids']) ?></div><?php endif; ?>
+      <div class="surat-pick-toolbar">
+        <button type="button" class="btn btn-ghost btn-sm" id="kelas-pick-all">Centang semua</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="kelas-pick-none">Kosongkan</button>
+        <span class="muted" id="kelas-pick-count"><?= count($selectedKelasIds) ?> dipilih</span>
+      </div>
+      <div class="surat-pick-grid bahan-kelas-pick">
+        <?php foreach ($daftarKelas as $row): ?>
+          <?php $kid = (int) $row['id']; ?>
+          <label class="surat-pick-item">
+            <input
+              type="checkbox"
+              name="kelas_ids[]"
+              value="<?= $kid ?>"
+              <?= isset($selectedMap[$kid]) ? 'checked' : '' ?>
+            >
+            <span><?= e($row['nama']) ?></span>
+            <span class="muted"><?= e($row['tahun_ajaran']) ?></span>
+          </label>
+        <?php endforeach; ?>
       </div>
     </div>
 
@@ -289,6 +301,19 @@ if ($isEdit && ($bahan['sumber'] ?? '') === 'upload' && !empty($bahan['file_path
           <span id="link-preview-text">Tautan siap digunakan</span>
         </div>
       </div>
+    </div>
+
+    <div class="field">
+      <label for="kuis_id">Tautkan kuis (opsional)</label>
+      <select id="kuis_id" name="kuis_id">
+        <option value="0">— Tanpa kuis —</option>
+        <?php foreach ($daftarKuis as $k): ?>
+          <option value="<?= (int) $k['id'] ?>" <?= $selectedKuisId === (int) $k['id'] ? 'selected' : '' ?>>
+            <?= e($k['judul']) ?> (<?= e($k['kode']) ?>)
+          </option>
+        <?php endforeach; ?>
+      </select>
+      <p class="hint">Siswa/guru bisa membuka kuis dari halaman lihat bahan.</p>
     </div>
 
     <div class="bahan-form-actions">
@@ -525,6 +550,30 @@ if ($isEdit && ($bahan['sumber'] ?? '') === 'upload' && !empty($bahan['file_path
       submitBtn.disabled = true;
     });
   }
+
+  var kelasBoxes = Array.prototype.slice.call(document.querySelectorAll('input[name="kelas_ids[]"]'));
+  var kelasCount = document.getElementById('kelas-pick-count');
+  var kelasAll = document.getElementById('kelas-pick-all');
+  var kelasNone = document.getElementById('kelas-pick-none');
+  function syncKelasCount() {
+    if (!kelasCount) return;
+    var n = kelasBoxes.filter(function (b) { return b.checked; }).length;
+    kelasCount.textContent = n + ' dipilih';
+  }
+  kelasBoxes.forEach(function (b) { b.addEventListener('change', syncKelasCount); });
+  if (kelasAll) {
+    kelasAll.addEventListener('click', function () {
+      kelasBoxes.forEach(function (b) { b.checked = true; });
+      syncKelasCount();
+    });
+  }
+  if (kelasNone) {
+    kelasNone.addEventListener('click', function () {
+      kelasBoxes.forEach(function (b) { b.checked = false; });
+      syncKelasCount();
+    });
+  }
+  syncKelasCount();
 
   setSumber(sumberInput.value || 'upload');
   updateFilePreview();

@@ -29,7 +29,7 @@ try {
 
     $pdo->exec($sql);
 
-    $appName = env('APP_NAME', 'Semampai') ?? 'Semampai';
+    $appName = env('APP_NAME', 'Gurupai') ?? 'Gurupai';
     $stmt = $pdo->prepare(
         "INSERT INTO settings (`key`, `value`) VALUES ('app_name', :value)
          ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)"

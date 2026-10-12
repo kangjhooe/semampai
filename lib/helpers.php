@@ -42,13 +42,60 @@ function env(string $key, ?string $default = null): ?string
 
 function app_name(): string
 {
-    return AppSettings::get('app_name', env('APP_NAME', 'Semampai') ?? 'Semampai');
+    $fromEnv = env('APP_NAME');
+    if (is_string($fromEnv) && trim($fromEnv) !== '') {
+        return trim($fromEnv);
+    }
+
+    return AppSettings::get('app_name', 'Gurupai');
+}
+
+/** Slug aman untuk localStorage / ID teknis (bukan hardcode nama brand). */
+function app_slug(): string
+{
+    $slug = preg_replace('/[^a-z0-9]+/i', '', strtolower(app_name())) ?? '';
+
+    return $slug !== '' ? $slug : 'app';
+}
+
+/** Ubah path internal (*.php) menjadi URL bersih tanpa ekstensi. */
+function app_pretty_path(string $path): string
+{
+    $path = ltrim($path, '/');
+    if ($path === '') {
+        return '';
+    }
+
+    $query = '';
+    $fragment = '';
+
+    if (str_contains($path, '#')) {
+        [$path, $fragment] = explode('#', $path, 2);
+        $fragment = '#' . $fragment;
+    }
+
+    if (str_contains($path, '?')) {
+        [$path, $query] = explode('?', $path, 2);
+        $query = '?' . $query;
+    }
+
+    if (str_ends_with(strtolower($path), '.php')) {
+        $path = substr($path, 0, -4);
+    }
+
+    if (strcasecmp($path, 'index') === 0) {
+        $path = '';
+    } else {
+        $path = preg_replace('#/index$#i', '', $path) ?? $path;
+    }
+
+    return $path . $query . $fragment;
 }
 
 function app_url(string $path = ''): string
 {
     $base = rtrim(env('APP_URL', '') ?? '', '/');
-    $path = ltrim($path, '/');
+    $path = app_pretty_path($path);
 
     if ($base === '') {
         return $path === '' ? '/' : '/' . $path;

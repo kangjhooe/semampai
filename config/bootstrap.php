@@ -15,6 +15,7 @@ require_once BASE_PATH . '/lib/helpers.php';
 require_once BASE_PATH . '/lib/Database.php';
 require_once BASE_PATH . '/lib/Csrf.php';
 require_once BASE_PATH . '/lib/Auth.php';
+require_once BASE_PATH . '/lib/Sekolah.php';
 require_once BASE_PATH . '/lib/AppSettings.php';
 require_once BASE_PATH . '/lib/Kelas.php';
 require_once BASE_PATH . '/lib/Siswa.php';
@@ -24,10 +25,17 @@ require_once BASE_PATH . '/lib/Hafalan.php';
 require_once BASE_PATH . '/lib/HafalanExporter.php';
 require_once BASE_PATH . '/lib/HafalanTarget.php';
 require_once BASE_PATH . '/lib/HafalanProgress.php';
+require_once BASE_PATH . '/lib/HafalanInsight.php';
+require_once BASE_PATH . '/lib/HafalanMurojaah.php';
 require_once BASE_PATH . '/lib/HafalanRekapExporter.php';
 require_once BASE_PATH . '/lib/QuranApi.php';
 require_once BASE_PATH . '/lib/EmbedUrl.php';
 require_once BASE_PATH . '/lib/BahanAjar.php';
+require_once BASE_PATH . '/lib/Kuis.php';
+require_once BASE_PATH . '/lib/KuisLive.php';
+require_once BASE_PATH . '/lib/Sse.php';
+require_once BASE_PATH . '/lib/KuisExporter.php';
+require_once BASE_PATH . '/lib/KuisSoalImporter.php';
 
 load_env(BASE_PATH . '/.env');
 

@@ -30,8 +30,8 @@ $success = flash('success');
       <li>
         <span class="auth-benefit-icon" aria-hidden="true">3</span>
         <div>
-          <strong>Terikat sekolah Anda</strong>
-          <span>Akun guru terhubung NPSN — data tetap di konteks sekolah.</span>
+          <strong>Multi-sekolah</strong>
+          <span>Satu akun bisa mengajar di beberapa sekolah — data terpisah per NPSN.</span>
         </div>
       </li>
     </ul>

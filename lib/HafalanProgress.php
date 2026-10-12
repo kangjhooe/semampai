@@ -184,39 +184,12 @@ final class HafalanProgress
     }
 
     /**
-     * Ayat yang sudah lancar dari nomor 1 berurutan (untuk prefill ceklis dari rekap).
+     * Set ayat yang sudah lancar untuk siswa + surat.
      *
-     * @param list<int> $coveredAyat
-     * @return list<int>
+     * @return array<int, true>
      */
-    public static function coveredPrefix(array $coveredAyat): array
+    public static function coveredAyatSet(int $siswaId, int $suratNomor): array
     {
-        if ($coveredAyat === []) {
-            return [];
-        }
-
-        $set = array_fill_keys($coveredAyat, true);
-        $run = [];
-        for ($i = 1; isset($set[$i]); $i++) {
-            $run[] = $i;
-        }
-
-        return $run;
-    }
-
-    /**
-     * Progres satu siswa pada satu surat (untuk deep-link dari rekap).
-     *
-     * @return array{status:string, covered:int, total:int, kurang:int, missing:list<int>, covered_ayat:list<int>, label:string}|null
-     */
-    public static function cellForSiswaSurat(int $siswaId, int $suratNomor, int $userId): ?array
-    {
-        $siswa = Siswa::findForUser($siswaId, $userId);
-        $surah = Surah::find($suratNomor);
-        if (!$siswa || !$surah) {
-            return null;
-        }
-
         $stmt = Database::connection()->prepare(
             "SELECT ayat_awal, ayat_akhir
              FROM hafalan
@@ -233,7 +206,45 @@ final class HafalanProgress
             }
         }
 
-        return self::evaluateCell($covered, (int) $surah['ayat']);
+        return $covered;
+    }
+
+    /**
+     * True jika seluruh rentang ayat sudah tercatat lancar.
+     */
+    public static function rangeAlreadyLancar(int $siswaId, int $suratNomor, int $ayatAwal, int $ayatAkhir): bool
+    {
+        if ($ayatAwal < 1 || $ayatAkhir < $ayatAwal) {
+            return false;
+        }
+
+        $covered = self::coveredAyatSet($siswaId, $suratNomor);
+        for ($a = $ayatAwal; $a <= $ayatAkhir; $a++) {
+            if (!isset($covered[$a])) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Progres satu siswa pada satu surat (untuk deep-link dari rekap).
+     *
+     * @return array{status:string, covered:int, total:int, kurang:int, missing:list<int>, covered_ayat:list<int>, label:string}|null
+     */
+    public static function cellForSiswaSurat(int $siswaId, int $suratNomor, int $userId): ?array
+    {
+        $siswa = Siswa::findForUser($siswaId, $userId);
+        $surah = Surah::find($suratNomor);
+        if (!$siswa || !$surah) {
+            return null;
+        }
+
+        return self::evaluateCell(
+            self::coveredAyatSet($siswaId, $suratNomor),
+            (int) $surah['ayat']
+        );
     }
 
     public static function setorUrl(int $kelasId, int $siswaId, int $suratNomor, bool $fromRekap = true): string

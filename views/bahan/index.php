@@ -74,7 +74,7 @@ $sumberMeta = [
         $thumb = BahanAjar::thumbnailUrl($row);
         $fallbackLabel = $sumber === 'upload' && $ext !== '' ? $ext : $meta['label'];
         ?>
-        <article class="bahan-card">
+        <article class="bahan-card <?= e($meta['class']) ?>">
           <a class="bahan-card-main" href="<?= e(app_url('bahan/lihat.php?id=' . $row['id'])) ?>">
             <div class="bahan-thumb <?= e($meta['class']) ?><?= $thumb ? ' has-img' : '' ?>">
               <?php if ($thumb): ?>
@@ -87,36 +87,59 @@ $sumberMeta = [
                 >
               <?php endif; ?>
               <div class="bahan-thumb-fallback" aria-hidden="true">
-                <?php if ($sumber === 'youtube'): ?>
-                  <svg viewBox="0 0 24 24"><path d="M8 7.5v9l8-4.5-8-4.5Z" fill="currentColor"/><rect x="3" y="5" width="18" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
-                <?php elseif ($sumber === 'vimeo'): ?>
-                  <svg viewBox="0 0 24 24"><path d="M8.2 8.8c1.7-2.7 3.4-4 5.2-4 1.1 0 1.9.5 2.3 1.5.5 1.3.2 3.2-.9 5.7-1.2 2.7-2.4 4-3.6 4-.5 0-1.1-.6-1.8-1.8L8.2 8.8Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M5.5 10.5c.7-1.2 1.5-1.8 2.3-1.8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-                <?php elseif ($sumber === 'gdrive'): ?>
-                  <svg viewBox="0 0 24 24"><path d="M12 4 4.5 17h15L12 4Zm-5.2 13L12 7.8 17.2 17H6.8Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
-                <?php elseif ($sumber === 'onedrive'): ?>
-                  <svg viewBox="0 0 24 24"><path d="M7.5 16.5A4.5 4.5 0 0 1 9 8a5.5 5.5 0 0 1 10.4 1.7A3.8 3.8 0 0 1 18.5 17.5H8.2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 16.8a3.2 3.2 0 0 1 .4-6.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-                <?php elseif ($sumber === 'canva'): ?>
-                  <svg viewBox="0 0 24 24"><path d="M7 5.5A2.5 2.5 0 0 1 9.5 3h5A2.5 2.5 0 0 1 17 5.5v13A2.5 2.5 0 0 1 14.5 21h-5A2.5 2.5 0 0 1 7 18.5v-13Z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10 8.5h4M10 12h4M10 15.5h2.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-                <?php else: ?>
-                  <svg viewBox="0 0 24 24"><path d="M7 4h7l4 4v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M14 4v4h4M9 12h6M9 15h6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-                <?php endif; ?>
-                <span><?= e($fallbackLabel) ?></span>
+                <span class="bahan-thumb-icon">
+                  <?php if ($sumber === 'youtube'): ?>
+                    <svg viewBox="0 0 24 24"><path d="M8 7.5v9l8-4.5-8-4.5Z" fill="currentColor"/><rect x="3" y="5" width="18" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+                  <?php elseif ($sumber === 'vimeo'): ?>
+                    <svg viewBox="0 0 24 24"><path d="M8.2 8.8c1.7-2.7 3.4-4 5.2-4 1.1 0 1.9.5 2.3 1.5.5 1.3.2 3.2-.9 5.7-1.2 2.7-2.4 4-3.6 4-.5 0-1.1-.6-1.8-1.8L8.2 8.8Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M5.5 10.5c.7-1.2 1.5-1.8 2.3-1.8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                  <?php elseif ($sumber === 'gdrive'): ?>
+                    <svg viewBox="0 0 24 24"><path d="M12 4 4.5 17h15L12 4Zm-5.2 13L12 7.8 17.2 17H6.8Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+                  <?php elseif ($sumber === 'onedrive'): ?>
+                    <svg viewBox="0 0 24 24"><path d="M7.5 16.5A4.5 4.5 0 0 1 9 8a5.5 5.5 0 0 1 10.4 1.7A3.8 3.8 0 0 1 18.5 17.5H8.2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 16.8a3.2 3.2 0 0 1 .4-6.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                  <?php elseif ($sumber === 'canva'): ?>
+                    <svg viewBox="0 0 24 24"><path d="M7 5.5A2.5 2.5 0 0 1 9.5 3h5A2.5 2.5 0 0 1 17 5.5v13A2.5 2.5 0 0 1 14.5 21h-5A2.5 2.5 0 0 1 7 18.5v-13Z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10 8.5h4M10 12h4M10 15.5h2.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                  <?php else: ?>
+                    <svg viewBox="0 0 24 24"><path d="M7 4h7l4 4v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M14 4v4h4M9 12h6M9 15h6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                  <?php endif; ?>
+                </span>
+                <span class="bahan-thumb-label"><?= e($fallbackLabel) ?></span>
               </div>
+              <span class="bahan-type-chip"><?= e($meta['label']) ?></span>
               <?php if (in_array($sumber, ['youtube', 'vimeo'], true)): ?>
                 <span class="bahan-play" aria-hidden="true">
                   <svg viewBox="0 0 24 24"><path d="M9 7.5v9l8-4.5-8-4.5Z" fill="currentColor"/></svg>
                 </span>
               <?php endif; ?>
+              <span class="bahan-thumb-shade" aria-hidden="true"></span>
             </div>
             <div class="bahan-card-body">
               <h2><?= e($row['judul']) ?></h2>
-              <p class="muted"><?= e($row['kelas_nama']) ?> · <?= e($row['tahun_ajaran']) ?></p>
+              <p class="bahan-card-kelas">
+                <?php
+                $kelasList = $row['kelas_list'] ?? [];
+                if ($kelasList === []):
+                ?>
+                  <span class="bahan-card-kelas-name">Belum ada kelas</span>
+                <?php else: ?>
+                  <?php foreach ($kelasList as $i => $kelasRow): ?>
+                    <?php if ($i > 0): ?><span class="bahan-card-dot" aria-hidden="true"></span><?php endif; ?>
+                    <span class="bahan-card-kelas-name"><?= e($kelasRow['nama']) ?></span>
+                  <?php endforeach; ?>
+                  <?php
+                  $years = array_values(array_unique(array_map(
+                      static fn (array $k): string => (string) $k['tahun_ajaran'],
+                      $kelasList
+                  )));
+                  if (count($years) === 1):
+                  ?>
+                    <span class="bahan-card-dot" aria-hidden="true"></span>
+                    <span><?= e($years[0]) ?></span>
+                  <?php endif; ?>
+                <?php endif; ?>
+              </p>
               <div class="bahan-card-meta">
-                <span class="badge <?= in_array($sumber, ['youtube', 'vimeo'], true) ? 'badge-warn' : 'badge-ok' ?>">
-                  <?= e(BahanAjar::labelSumber($sumber)) ?>
-                </span>
                 <time datetime="<?= e($row['created_at']) ?>">
-                  <?= e(date('d/m/Y', strtotime((string) $row['created_at']))) ?>
+                  <?= e(date('d M Y', strtotime((string) $row['created_at']))) ?>
                 </time>
               </div>
             </div>

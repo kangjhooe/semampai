@@ -1,6 +1,8 @@
 .env
 /uploads/*
 !/uploads/.gitkeep
+!/uploads/kuis/
+!/uploads/kuis/.gitkeep
 /storage/quran/*.json
 !/storage/quran/.gitkeep
 /vendor/

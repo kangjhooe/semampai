@@ -11,11 +11,24 @@ $ext = strtolower((string) ($bahan['file_ext'] ?? ''));
   <div>
     <p class="muted">
       <?= e($sumberLabel) ?> ·
-      Kelas <?= e((string) $bahan['kelas_nama']) ?> ·
+      <?php
+        $kelasLabel = (string) ($bahan['kelas_label'] ?? $bahan['kelas_nama'] ?? '');
+        echo $kelasLabel !== '' ? e($kelasLabel) . ' · ' : '';
+      ?>
       <a href="<?= e(app_url('bahan/index.php')) ?>">← Galeri bahan</a>
     </p>
   </div>
   <div class="actions">
+    <?php if (!empty($bahan['kuis_id'])): ?>
+      <?php
+      $linkedKuis = Kuis::findForUser((int) $bahan['kuis_id'], (int) ($user['id'] ?? 0));
+      if ($linkedKuis):
+      ?>
+        <a class="btn btn-primary" href="<?= e(app_url('kuis/ikut.php?kode=' . urlencode($linkedKuis['kode']))) ?>" target="_blank" rel="noopener">
+          Buka kuis
+        </a>
+      <?php endif; ?>
+    <?php endif; ?>
     <a class="btn btn-ghost" href="<?= e(app_url('bahan/form.php?id=' . (int) $bahan['id'])) ?>">Edit</a>
   </div>
 </section>

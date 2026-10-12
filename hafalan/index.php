@@ -29,10 +29,17 @@ if (isset($_GET['tampil']) && in_array($_GET['tampil'], ['arab', 'arab_terjemah'
 }
 $tampilMode = $_SESSION['hafalan_tampil'] ?? 'arab_terjemah';
 
-// Prefill dari rekap / deep-link
+// Preferensi mode fokus
+if (isset($_GET['fokus'])) {
+    $_SESSION['hafalan_fokus'] = $_GET['fokus'] === '1' ? '1' : '0';
+}
+$fokusMode = ($_SESSION['hafalan_fokus'] ?? '0') === '1';
+
+// Prefill dari rekap / murojaah / deep-link
 $prefillSiswaId = (int) ($_GET['siswa_id'] ?? 0);
 $prefillSurat = (int) ($_GET['surat'] ?? 0);
 $returnRekap = isset($_GET['from']) && $_GET['from'] === 'rekap';
+$jenis = Hafalan::normalizeJenis($_GET['jenis'] ?? $_POST['jenis'] ?? 'setoran');
 
 if ($prefillSiswaId > 0) {
     $validSiswa = false;
@@ -61,7 +68,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $tampilMode = $_POST['tampil'];
     }
 
+    if (isset($_POST['fokus'])) {
+        $_SESSION['hafalan_fokus'] = $_POST['fokus'] === '1' ? '1' : '0';
+        $fokusMode = $_SESSION['hafalan_fokus'] === '1';
+    }
+
     $returnRekap = isset($_POST['from_rekap']) && $_POST['from_rekap'] === '1';
+    $jenis = Hafalan::normalizeJenis($_POST['jenis'] ?? 'setoran');
+    $advanceNext = isset($_POST['advance_next']) && $_POST['advance_next'] === '1';
 
     store_old($_POST);
     $result = Hafalan::create($userId, [
@@ -70,6 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'ayat' => $_POST['ayat'] ?? [],
         'status' => (string) ($_POST['status'] ?? ''),
         'catatan' => (string) ($_POST['catatan'] ?? ''),
+        'jenis' => $jenis,
     ]);
 
     if ($result['ok']) {
@@ -84,8 +99,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             redirect('hafalan/rekap.php?kelas_id=' . $kelasId . '&view=siswa');
         }
 
+        $qs = 'kelas_id=' . $kelasId;
+        if ($fokusMode) {
+            $qs .= '&fokus=1';
+        }
+
+        if ($advanceNext && $kelas) {
+            $sudah = HafalanInsight::siswaSetorHariIni((int) $kelas['id'], $userId);
+            $sudah[$sid] = true;
+            $nextId = Hafalan::nextSiswaId($siswaList, $sid, $sudah);
+            if ($nextId > 0) {
+                redirect('hafalan/index.php?' . $qs . '&siswa_id=' . $nextId . '&jenis=setoran');
+            }
+        }
+
         // Lanjut menyimak siswa & surat yang sama
-        redirect('hafalan/index.php?kelas_id=' . $kelasId . '&siswa_id=' . $sid . '&surat=' . $sn);
+        $qs .= '&siswa_id=' . $sid . '&surat=' . $sn . '&jenis=' . urlencode($jenis);
+        redirect('hafalan/index.php?' . $qs);
     }
 
     $errors = $result['errors'];
@@ -107,21 +137,25 @@ if ($selectedSiswa === '' && $prefillSiswaId > 0) {
 $selectedAyat = [];
 if (isset($_SESSION['_old']['ayat']) && is_array($_SESSION['_old']['ayat'])) {
     $selectedAyat = array_map('intval', $_SESSION['_old']['ayat']);
+} elseif ($jenis === 'murojaah' && $prefillSurat > 0) {
+    $surah = Surah::find($prefillSurat);
+    if ($surah) {
+        $selectedAyat = range(1, (int) $surah['ayat']);
+    }
 } elseif ($prefillSiswaId > 0 && $prefillSurat > 0) {
     $cell = HafalanProgress::cellForSiswaSurat($prefillSiswaId, $prefillSurat, $userId);
-    if ($cell && $cell['status'] === 'proses') {
-        // Sudah setor 1–N: centang yang sudah lancar (bukan kosong / bukan sisa saja)
-        $selectedAyat = HafalanProgress::coveredPrefix($cell['covered_ayat']);
-    } elseif ($cell && $cell['status'] === 'belum') {
+    // Model kejadian: centang sisa yang belum lancar (bukan yang sudah).
+    if ($cell && in_array($cell['status'], ['proses', 'belum'], true)) {
         $selectedAyat = HafalanProgress::firstContiguousMissing($cell['missing']);
     }
 }
 
 $suratData = QuranApi::getSurat($selectedSurat);
 $recent = $kelas ? Hafalan::recentForKelas((int) $kelas['id'], $userId) : [];
+$setorHariIni = $kelas ? HafalanInsight::siswaSetorHariIni((int) $kelas['id'], $userId) : [];
 
 view('hafalan/form', [
-    'title' => 'Setoran Hafalan',
+    'title' => $jenis === 'murojaah' ? 'Muroja\'ah' : 'Setoran Hafalan',
     'user' => $user,
     'daftarKelas' => $daftarKelas,
     'kelas' => $kelas,
@@ -132,9 +166,12 @@ view('hafalan/form', [
     'selectedSiswa' => $selectedSiswa,
     'selectedAyat' => $selectedAyat,
     'tampilMode' => $tampilMode,
+    'fokusMode' => $fokusMode,
+    'jenis' => $jenis,
+    'setorHariIni' => $setorHariIni,
     'apiSuratUrl' => app_url('api/surat.php'),
     'recent' => $recent,
     'errors' => $errors,
     'fromRekap' => $returnRekap,
-    'prefillHint' => $prefillSiswaId > 0 && $prefillSurat > 0,
+    'prefillHint' => $prefillSiswaId > 0 && $prefillSurat > 0 && $selectedAyat !== [],
 ], 'app');
