@@ -8,7 +8,8 @@ $pageTitle = trim(($title ?? 'Masuk') . ' · ' . $appName);
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f3f6f2">
   <title><?= e($pageTitle) ?></title>
   <link rel="stylesheet" href="<?= e(app_url('assets/css/app.css')) ?>">
 </head>

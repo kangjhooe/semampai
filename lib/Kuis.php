@@ -33,8 +33,10 @@ final class Kuis
         }
 
         if ($q !== '') {
-            $sql .= ' AND (k.judul LIKE :q OR k.kode LIKE :q)';
-            $params['q'] = '%' . $q . '%';
+            $sql .= ' AND (k.judul LIKE :q_judul OR k.kode LIKE :q_kode)';
+            $like = '%' . $q . '%';
+            $params['q_judul'] = $like;
+            $params['q_kode'] = $like;
         }
 
         $sql .= ' ORDER BY k.updated_at DESC, k.id DESC';
@@ -171,7 +173,7 @@ final class Kuis
         }
 
         foreach (self::soalForKuis($id) as $soal) {
-            self::unlinkGambarPath((string) ($soal['gambar_path'] ?? ''));
+            self::unlinkSoalMedia($soal);
         }
 
         $stmt = Database::connection()->prepare(
@@ -197,6 +199,7 @@ final class Kuis
         }
 
         $pdo = Database::connection();
+        $copiedPaths = [];
         try {
             $pdo->beginTransaction();
             $kode = self::generateUniqueKode($pdo);
@@ -241,15 +244,16 @@ final class Kuis
                 $oldPath = (string) ($soal['gambar_path'] ?? '');
                 if ($oldPath !== '') {
                     $newPath = self::copyGambarPath($oldPath);
+                    if ($newPath !== null) {
+                        $copiedPaths[] = $newPath;
+                    }
                 }
                 $insertSoal->execute([
                     'kuis_id' => $newId,
                     'urutan' => (int) $soal['urutan'],
                     'pertanyaan' => (string) $soal['pertanyaan'],
                     'tipe' => (string) ($soal['tipe'] ?? 'pilihan_ganda'),
-                    'opsi_json' => is_string($soal['opsi_json'] ?? null)
-                        ? $soal['opsi_json']
-                        : json_encode($soal['opsi'], JSON_UNESCAPED_UNICODE),
+                    'opsi_json' => self::copyOpsiJson($soal, $copiedPaths),
                     'jawaban_index' => (int) $soal['jawaban_index'],
                     'jawaban_teks' => $soal['jawaban_teks'] ?? null,
                     'timer_detik' => isset($soal['timer_detik']) && $soal['timer_detik'] !== null ? (int) $soal['timer_detik'] : null,
@@ -265,6 +269,7 @@ final class Kuis
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();
             }
+            self::unlinkGambarPaths($copiedPaths);
 
             return ['ok' => false, 'errors' => ['_form' => 'Gagal menduplikasi kuis.']];
         }
@@ -292,7 +297,7 @@ final class Kuis
         return $rows;
     }
 
-    /** Soal untuk peserta: tanpa kunci jawaban. Opsi bisa berisi {i,teks} jika diacak. */
+    /** Soal untuk peserta: tanpa kunci jawaban. Opsi berisi {i,teks,gambar}. */
     public static function soalUntukPeserta(int $kuisId, bool $acakSoal = false, bool $acakOpsi = false): array
     {
         $soal = self::soalForKuis($kuisId);
@@ -305,8 +310,12 @@ final class Kuis
             $tipe = (string) ($row['tipe'] ?? 'pilihan_ganda');
             $opsiItems = [];
             if ($tipe === 'pilihan_ganda') {
-                foreach ($row['opsi'] as $i => $teks) {
-                    $opsiItems[] = ['i' => (int) $i, 'teks' => (string) $teks];
+                foreach ($row['opsi'] as $i => $item) {
+                    $opsiItems[] = [
+                        'i' => (int) $i,
+                        'teks' => self::opsiTeks($item),
+                        'gambar' => self::opsiGambarSrc((int) $row['id'], $item, (int) $i),
+                    ];
                 }
                 if ($acakOpsi && count($opsiItems) > 1) {
                     shuffle($opsiItems);
@@ -446,8 +455,8 @@ final class Kuis
             'ok' => $ok,
             'pilih' => $pilih,
             'benar' => $benar,
-            'pilih_teks' => $pilih >= 0 ? (string) ($opsi[$pilih] ?? '') : '(tidak dijawab)',
-            'benar_teks' => (string) ($opsi[$benar] ?? ''),
+            'pilih_teks' => $pilih >= 0 ? self::opsiLabel($opsi[$pilih] ?? null) : '(tidak dijawab)',
+            'benar_teks' => self::opsiLabel($opsi[$benar] ?? null),
         ];
     }
 
@@ -476,19 +485,21 @@ final class Kuis
         return $row ?: null;
     }
 
-    public static function addSoal(int $kuisId, int $userId, array $data, ?array $file = null): array
+    public static function addSoal(int $kuisId, int $userId, array $data, ?array $file = null, ?array $opsiFiles = null): array
     {
         if (!self::findForUser($kuisId, $userId)) {
             return ['ok' => false, 'errors' => ['_form' => 'Kuis tidak ditemukan.']];
         }
 
-        $parsed = self::parseSoalInput($data);
+        $parsed = self::parseSoalInput($data, $opsiFiles, []);
         if ($parsed['errors'] !== []) {
             return ['ok' => false, 'errors' => $parsed['errors']];
         }
 
         $gambar = self::resolveGambarInput($data, $file, null);
         if (!$gambar['ok']) {
+            self::unlinkGambarPaths($parsed['new_opsi_paths'] ?? []);
+
             return ['ok' => false, 'errors' => $gambar['errors']];
         }
 
@@ -515,11 +526,14 @@ final class Kuis
                 'gambar_url' => $gambar['url'],
             ]);
 
+            self::unlinkGambarPaths($parsed['unlink_opsi'] ?? []);
+
             return ['ok' => true, 'errors' => [], 'id' => (int) $pdo->lastInsertId()];
         } catch (Throwable $e) {
             if (!empty($gambar['path'])) {
                 self::unlinkGambarPath((string) $gambar['path']);
             }
+            self::unlinkGambarPaths($parsed['new_opsi_paths'] ?? []);
 
             return ['ok' => false, 'errors' => ['_form' => 'Gagal menambah soal.']];
         }
@@ -550,20 +564,23 @@ final class Kuis
         return $row;
     }
 
-    public static function updateSoal(int $soalId, int $userId, array $data, ?array $file = null): array
+    public static function updateSoal(int $soalId, int $userId, array $data, ?array $file = null, ?array $opsiFiles = null): array
     {
         $soal = self::findSoalForUser($soalId, $userId);
         if (!$soal) {
             return ['ok' => false, 'errors' => ['_form' => 'Soal tidak ditemukan.']];
         }
 
-        $parsed = self::parseSoalInput($data);
+        $existingOpsi = is_array($soal['opsi'] ?? null) ? $soal['opsi'] : [];
+        $parsed = self::parseSoalInput($data, $opsiFiles, $existingOpsi);
         if ($parsed['errors'] !== []) {
             return ['ok' => false, 'errors' => $parsed['errors']];
         }
 
         $gambar = self::resolveGambarInput($data, $file, $soal);
         if (!$gambar['ok']) {
+            self::unlinkGambarPaths($parsed['new_opsi_paths'] ?? []);
+
             return ['ok' => false, 'errors' => $gambar['errors']];
         }
 
@@ -595,12 +612,14 @@ final class Kuis
             if (!empty($gambar['unlink_old'])) {
                 self::unlinkGambarPath((string) $gambar['unlink_old']);
             }
+            self::unlinkGambarPaths($parsed['unlink_opsi'] ?? []);
 
             return ['ok' => true, 'errors' => []];
         } catch (Throwable $e) {
             if (!empty($gambar['path']) && $gambar['path'] !== ($soal['gambar_path'] ?? null)) {
                 self::unlinkGambarPath((string) $gambar['path']);
             }
+            self::unlinkGambarPaths($parsed['new_opsi_paths'] ?? []);
 
             return ['ok' => false, 'errors' => ['_form' => 'Gagal memperbarui soal.']];
         }
@@ -620,7 +639,7 @@ final class Kuis
         );
         $stmt->execute(['id' => $soalId, 'user_id' => $userId]);
         if ($stmt->rowCount() > 0) {
-            self::unlinkGambarPath((string) ($soal['gambar_path'] ?? ''));
+            self::unlinkSoalMedia($soal);
 
             return true;
         }
@@ -693,19 +712,26 @@ final class Kuis
 
             $pilih = (int) $item['pilih'];
             $benar = (int) ($item['benar'] ?? $soal['jawaban_index']);
+            $opsiTampil = [];
+            foreach ($soal['opsi'] as $oi => $opsiItem) {
+                $opsiTampil[] = [
+                    'teks' => self::opsiTeks($opsiItem),
+                    'gambar' => self::opsiGambarSrc((int) $soal['id'], $opsiItem, (int) $oi),
+                ];
+            }
             $review[] = [
                 'nomor' => $i + 1,
                 'tipe' => 'pilihan_ganda',
                 'pertanyaan' => $soal['pertanyaan'],
-                'opsi' => $soal['opsi'],
+                'opsi' => $opsiTampil,
                 'gambar' => self::gambarPublicUrl($soal),
                 'pilih' => $pilih,
                 'benar' => $benar,
                 'ok' => (bool) $item['ok'],
                 'pilih_label' => $pilih >= 0 ? ($labels[$pilih] ?? (string) ($pilih + 1)) : '—',
                 'benar_label' => $labels[$benar] ?? (string) ($benar + 1),
-                'pilih_teks' => (string) ($item['pilih_teks'] ?? ($pilih >= 0 ? (string) ($soal['opsi'][$pilih] ?? '') : '(tidak dijawab)')),
-                'benar_teks' => (string) ($item['benar_teks'] ?? ($soal['opsi'][$benar] ?? '')),
+                'pilih_teks' => (string) ($item['pilih_teks'] ?? ($pilih >= 0 ? self::opsiLabel($soal['opsi'][$pilih] ?? null) : '(tidak dijawab)')),
+                'benar_teks' => (string) ($item['benar_teks'] ?? self::opsiLabel($soal['opsi'][$benar] ?? null)),
             ];
         }
 
@@ -1223,41 +1249,41 @@ final class Kuis
     }
 
     /** @return array{ok:bool, errors:array<string,string>, path?:string} */
-    private static function storeGambarUpload(array $file): array
+    private static function storeGambarUpload(array $file, string $errorKey = 'gambar'): array
     {
         if ((int) ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
-            return ['ok' => false, 'errors' => ['gambar' => 'Gagal mengunggah gambar.']];
+            return ['ok' => false, 'errors' => [$errorKey => 'Gagal mengunggah gambar.']];
         }
 
         $tmp = (string) ($file['tmp_name'] ?? '');
         if ($tmp === '' || !is_uploaded_file($tmp)) {
-            return ['ok' => false, 'errors' => ['gambar' => 'File upload tidak valid.']];
+            return ['ok' => false, 'errors' => [$errorKey => 'File upload tidak valid.']];
         }
 
         if ((int) ($file['size'] ?? 0) > 2 * 1024 * 1024) {
-            return ['ok' => false, 'errors' => ['gambar' => 'Ukuran gambar maksimal 2 MB.']];
+            return ['ok' => false, 'errors' => [$errorKey => 'Ukuran gambar maksimal 2 MB.']];
         }
 
         $ext = strtolower(pathinfo((string) ($file['name'] ?? ''), PATHINFO_EXTENSION));
         if (!in_array($ext, self::IMAGE_EXT, true)) {
-            return ['ok' => false, 'errors' => ['gambar' => 'Format gambar: JPG, PNG, GIF, WEBP.']];
+            return ['ok' => false, 'errors' => [$errorKey => 'Format gambar: JPG, PNG, GIF, WEBP.']];
         }
 
         $finfo = new finfo(FILEINFO_MIME_TYPE);
         $mime = $finfo->file($tmp) ?: '';
         if (!str_starts_with($mime, 'image/')) {
-            return ['ok' => false, 'errors' => ['gambar' => 'File bukan gambar yang valid.']];
+            return ['ok' => false, 'errors' => [$errorKey => 'File bukan gambar yang valid.']];
         }
 
         $dir = BASE_PATH . '/uploads/kuis';
         if (!is_dir($dir) && !mkdir($dir, 0755, true) && !is_dir($dir)) {
-            return ['ok' => false, 'errors' => ['gambar' => 'Gagal membuat folder upload.']];
+            return ['ok' => false, 'errors' => [$errorKey => 'Gagal membuat folder upload.']];
         }
 
         $filename = date('YmdHis') . '_' . bin2hex(random_bytes(8)) . '.' . $ext;
         $dest = $dir . '/' . $filename;
         if (!move_uploaded_file($tmp, $dest)) {
-            return ['ok' => false, 'errors' => ['gambar' => 'Gagal menyimpan gambar.']];
+            return ['ok' => false, 'errors' => [$errorKey => 'Gagal menyimpan gambar.']];
         }
 
         return ['ok' => true, 'errors' => [], 'path' => 'uploads/kuis/' . $filename];
@@ -1307,6 +1333,59 @@ final class Kuis
         return $destRel;
     }
 
+    /** @param list<string> $paths */
+    private static function unlinkGambarPaths(array $paths): void
+    {
+        foreach ($paths as $path) {
+            self::unlinkGambarPath((string) $path);
+        }
+    }
+
+    private static function unlinkSoalMedia(array $soal): void
+    {
+        self::unlinkGambarPath((string) ($soal['gambar_path'] ?? ''));
+        $opsi = is_array($soal['opsi'] ?? null) ? $soal['opsi'] : self::decodeOpsi($soal['opsi_json'] ?? '[]');
+        foreach ($opsi as $item) {
+            if (is_array($item)) {
+                self::unlinkGambarPath((string) ($item['gambar_path'] ?? ''));
+            }
+        }
+    }
+
+    /** @param list<string> $copiedPaths */
+    private static function copyOpsiJson(array $soal, array &$copiedPaths): string
+    {
+        $original = $soal['opsi_json'] ?? '[]';
+        $list = self::decodeOpsi(is_string($original) ? $original : ($soal['opsi'] ?? []));
+        $hasMedia = false;
+        foreach ($list as &$item) {
+            if (($item['gambar_url'] ?? null) !== null) {
+                $hasMedia = true;
+            }
+            $path = (string) ($item['gambar_path'] ?? '');
+            if ($path === '') {
+                continue;
+            }
+            $hasMedia = true;
+            $copy = self::copyGambarPath($path);
+            if ($copy !== null) {
+                $item['gambar_path'] = $copy;
+                $copiedPaths[] = $copy;
+            } else {
+                $item['gambar_path'] = null;
+            }
+        }
+        unset($item);
+
+        if (!$hasMedia && is_string($original)) {
+            return $original;
+        }
+
+        $json = json_encode(array_values($list), JSON_UNESCAPED_UNICODE);
+
+        return is_string($json) ? $json : '[]';
+    }
+
     private static function generateUniqueKode(PDO $pdo): string
     {
         $chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -1326,25 +1405,125 @@ final class Kuis
         throw new RuntimeException('Gagal membuat kode kuis unik.');
     }
 
-    /** @return list<string> */
-    private static function decodeOpsi(mixed $raw): array
+    /**
+     * @return list<array{teks:string, gambar_path:?string, gambar_url:?string}>
+     */
+    public static function decodeOpsi(mixed $raw): array
     {
-        if (is_array($raw)) {
-            return array_values(array_map('strval', $raw));
+        if (is_string($raw)) {
+            $decoded = json_decode($raw, true);
+            $raw = is_array($decoded) ? $decoded : [];
         }
-
-        $decoded = json_decode((string) $raw, true);
-        if (!is_array($decoded)) {
+        if (!is_array($raw)) {
             return [];
         }
 
-        return array_values(array_map('strval', $decoded));
+        $out = [];
+        foreach ($raw as $item) {
+            $out[] = self::normalizeOpsiItem($item);
+        }
+
+        return $out;
+    }
+
+    public static function opsiTeks(mixed $item): string
+    {
+        return self::normalizeOpsiItem($item)['teks'];
+    }
+
+    public static function opsiLabel(mixed $item): string
+    {
+        $norm = self::normalizeOpsiItem($item);
+        if ($norm['teks'] !== '') {
+            return $norm['teks'];
+        }
+        if ($norm['gambar_path'] !== null || $norm['gambar_url'] !== null) {
+            return 'Gambar';
+        }
+
+        return '';
+    }
+
+    public static function opsiGambarSrc(int $soalId, mixed $item, int $index): ?string
+    {
+        $norm = self::normalizeOpsiItem($item);
+        $path = (string) ($norm['gambar_path'] ?? '');
+        if ($path !== '' && $soalId > 0 && $index >= 0 && $index <= 5) {
+            $full = BASE_PATH . '/' . $path;
+            $v = is_file($full) ? (string) filemtime($full) : '0';
+
+            return app_url('kuis/gambar.php?soal_id=' . $soalId . '&opsi=' . $index . '&v=' . $v);
+        }
+
+        $url = (string) ($norm['gambar_url'] ?? '');
+        if ($url !== '' && preg_match('#^https?://#i', $url) === 1) {
+            return $url;
+        }
+
+        return null;
+    }
+
+    /** @return array{teks:string, gambar_path:?string, gambar_url:?string} */
+    private static function normalizeOpsiItem(mixed $item): array
+    {
+        if (is_array($item)) {
+            $path = trim((string) ($item['gambar_path'] ?? ''));
+            $url = trim((string) ($item['gambar_url'] ?? ''));
+            if ($path !== '' && (str_contains($path, '..') || !str_starts_with($path, 'uploads/kuis/'))) {
+                $path = '';
+            }
+            if ($url !== '' && preg_match('#^https?://#i', $url) !== 1) {
+                $url = '';
+            }
+
+            return [
+                'teks' => trim((string) ($item['teks'] ?? '')),
+                'gambar_path' => $path !== '' ? $path : null,
+                'gambar_url' => $url !== '' ? $url : null,
+            ];
+        }
+
+        $teks = is_string($item) || is_int($item) || is_float($item) ? trim((string) $item) : '';
+
+        return ['teks' => $teks, 'gambar_path' => null, 'gambar_url' => null];
+    }
+
+    private static function postedString(mixed $value): string
+    {
+        if (is_string($value) || is_int($value) || is_float($value)) {
+            return trim((string) $value);
+        }
+
+        return '';
+    }
+
+    /** @return array{name:string, type:string, tmp_name:string, error:int, size:int}|null */
+    private static function fileAt(?array $files, int $index): ?array
+    {
+        if ($files === null || !isset($files['error']) || !is_array($files['error'])) {
+            return null;
+        }
+
+        $err = (int) ($files['error'][$index] ?? UPLOAD_ERR_NO_FILE);
+        if ($err === UPLOAD_ERR_NO_FILE) {
+            return null;
+        }
+
+        return [
+            'name' => is_array($files['name'] ?? null) ? (string) ($files['name'][$index] ?? '') : '',
+            'type' => is_array($files['type'] ?? null) ? (string) ($files['type'][$index] ?? '') : '',
+            'tmp_name' => is_array($files['tmp_name'] ?? null) ? (string) ($files['tmp_name'][$index] ?? '') : '',
+            'error' => $err,
+            'size' => is_array($files['size'] ?? null) ? (int) ($files['size'][$index] ?? 0) : 0,
+        ];
     }
 
     /**
-     * @return array{errors:array<string,string>, pertanyaan?:string, tipe?:string, opsi?:list<string>, jawaban_index?:int, jawaban_teks?:?string, timer_detik?:?int}
+     * @param array<string, mixed>|null $opsiFiles
+     * @param list<array{teks:string, gambar_path:?string, gambar_url:?string}> $existingOpsi
+     * @return array{errors:array<string,string>, pertanyaan?:string, tipe?:string, opsi?:list<array{teks:string, gambar_path:?string, gambar_url:?string}>, jawaban_index?:int, jawaban_teks?:?string, timer_detik?:?int, unlink_opsi?:list<string>, new_opsi_paths?:list<string>}
      */
-    private static function parseSoalInput(array $data): array
+    private static function parseSoalInput(array $data, ?array $opsiFiles = null, array $existingOpsi = []): array
     {
         $errors = [];
         $pertanyaan = trim((string) ($data['pertanyaan'] ?? ''));
@@ -1373,6 +1552,16 @@ final class Kuis
         $opsi = [];
         $jawabanIndex = 0;
         $jawabanTeks = null;
+        $unlinkLater = [];
+        $uploadedNow = [];
+        $letters = ['A', 'B', 'C', 'D', 'E', 'F'];
+
+        $fail = static function (array $failErrors) use (&$uploadedNow): array {
+            self::unlinkGambarPaths($uploadedNow);
+            $uploadedNow = [];
+
+            return ['errors' => $failErrors];
+        };
 
         if ($tipe === 'isian') {
             $jawabanTeks = trim((string) ($data['jawaban_teks'] ?? ''));
@@ -1381,28 +1570,121 @@ final class Kuis
             } elseif (mb_strlen($jawabanTeks) > 255) {
                 $errors['jawaban_teks'] = 'Kunci isian maksimal 255 karakter.';
             }
-        } else {
-            $rawOpsi = $data['opsi'] ?? [];
-            if (!is_array($rawOpsi)) {
-                $rawOpsi = [];
+            foreach ($existingOpsi as $item) {
+                if (!is_array($item)) {
+                    continue;
+                }
+                $old = trim((string) ($item['gambar_path'] ?? ''));
+                if ($old !== '') {
+                    $unlinkLater[] = $old;
+                }
             }
+        } else {
+            $rawOpsi = is_array($data['opsi'] ?? null) ? $data['opsi'] : [];
+            $rawUrls = is_array($data['opsi_gambar_url'] ?? null) ? $data['opsi_gambar_url'] : [];
+            $rawHapus = is_array($data['opsi_hapus_gambar'] ?? null) ? $data['opsi_hapus_gambar'] : [];
+            $slotSet = [];
+            foreach ([$rawOpsi, $rawUrls, $rawHapus] as $bag) {
+                foreach ($bag as $key => $_) {
+                    if (!is_int($key) && !(is_string($key) && ctype_digit($key))) {
+                        continue;
+                    }
+                    $n = (int) $key;
+                    if ($n >= 0 && $n <= 5) {
+                        $slotSet[$n] = true;
+                    }
+                }
+            }
+            if (is_array($opsiFiles) && isset($opsiFiles['error']) && is_array($opsiFiles['error'])) {
+                foreach ($opsiFiles['error'] as $key => $err) {
+                    if ((int) $err === UPLOAD_ERR_NO_FILE) {
+                        continue;
+                    }
+                    if (!is_int($key) && !(is_string($key) && ctype_digit((string) $key))) {
+                        continue;
+                    }
+                    $n = (int) $key;
+                    if ($n >= 0 && $n <= 5) {
+                        $slotSet[$n] = true;
+                    }
+                }
+            }
+            ksort($slotSet);
 
             $indexMap = [];
-            $slot = 0;
-            foreach ($rawOpsi as $item) {
-                if ($slot >= 6) {
-                    break;
+            foreach (array_keys($slotSet) as $slot) {
+                $prev = $existingOpsi[$slot] ?? null;
+                $prev = self::normalizeOpsiItem($prev);
+                $previousPath = (string) ($prev['gambar_path'] ?? '');
+                $path = $prev['gambar_path'];
+                $urlKeep = $prev['gambar_url'];
+
+                $file = self::fileAt($opsiFiles, $slot);
+                if ($file !== null) {
+                    $stored = self::storeGambarUpload($file, 'opsi');
+                    if (!$stored['ok']) {
+                        $message = (string) ($stored['errors']['opsi'] ?? 'Gagal mengunggah gambar.');
+
+                        return $fail(['opsi' => 'Opsi ' . $letters[$slot] . ': ' . $message]);
+                    }
+                    if ($previousPath !== '' && $previousPath !== $stored['path']) {
+                        $unlinkLater[] = $previousPath;
+                    }
+                    $path = $stored['path'];
+                    $urlKeep = null;
+                    $uploadedNow[] = $stored['path'];
+                } elseif (!empty($rawHapus[$slot])) {
+                    if ($previousPath !== '') {
+                        $unlinkLater[] = $previousPath;
+                    }
+                    $path = null;
+                    $urlKeep = null;
+                } else {
+                    $urlPosted = array_key_exists($slot, $rawUrls);
+                    $url = $urlPosted ? self::postedString($rawUrls[$slot]) : '';
+                    if ($urlPosted && $url !== '') {
+                        if (!filter_var($url, FILTER_VALIDATE_URL) || preg_match('#^https?://#i', $url) !== 1) {
+                            return $fail(['opsi' => 'URL gambar opsi ' . $letters[$slot] . ' tidak valid (http/https).']);
+                        }
+                        if ($previousPath !== '') {
+                            $unlinkLater[] = $previousPath;
+                        }
+                        $path = null;
+                        $urlKeep = $url;
+                    } elseif ($urlPosted && $url === '') {
+                        $urlKeep = null;
+                    }
                 }
-                $text = trim((string) $item);
-                if ($text !== '') {
-                    $indexMap[$slot] = count($opsi);
-                    $opsi[] = $text;
+
+                $text = self::postedString($rawOpsi[$slot] ?? '');
+                $hasImage = ($path !== null && $path !== '') || ($urlKeep !== null && $urlKeep !== '');
+                if ($text === '' && !$hasImage) {
+                    if ($previousPath !== '' && !in_array($previousPath, $unlinkLater, true)) {
+                        $unlinkLater[] = $previousPath;
+                    }
+                    continue;
                 }
-                $slot++;
+
+                $indexMap[$slot] = count($opsi);
+                $opsi[] = [
+                    'teks' => $text,
+                    'gambar_path' => $path !== null && $path !== '' ? $path : null,
+                    'gambar_url' => $urlKeep !== null && $urlKeep !== '' ? $urlKeep : null,
+                ];
+            }
+
+            foreach ($existingOpsi as $i => $item) {
+                if (isset($slotSet[$i]) || !is_array($item)) {
+                    continue;
+                }
+                $old = trim((string) ($item['gambar_path'] ?? ''));
+                if ($old !== '') {
+                    $unlinkLater[] = $old;
+                }
             }
 
             if (count($opsi) < 2) {
-                $errors['opsi'] = 'Minimal 2 opsi jawaban (A–B).';
+                $errors['opsi'] = 'Minimal 2 opsi. Tiap opsi perlu teks atau gambar.';
             } elseif (count($opsi) > 6) {
                 $errors['opsi'] = 'Maksimal 6 opsi (A–F).';
             }
@@ -1415,7 +1697,7 @@ final class Kuis
         }
 
         if ($errors !== []) {
-            return ['errors' => $errors];
+            return $fail($errors);
         }
 
         return [
@@ -1426,6 +1708,8 @@ final class Kuis
             'jawaban_index' => $jawabanIndex,
             'jawaban_teks' => $jawabanTeks,
             'timer_detik' => $timerDetik,
+            'unlink_opsi' => $unlinkLater,
+            'new_opsi_paths' => $uploadedNow,
         ];
     }
 }

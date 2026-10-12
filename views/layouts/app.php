@@ -85,12 +85,44 @@ $navItems = [
         'children' => $hafalanChildren,
     ],
 ];
+
+$bottomNav = [];
+foreach ($navItems as $item) {
+    if (!empty($item['children'])) {
+        $bottomNav[] = [
+            'label' => 'Hafalan',
+            'href' => app_url('hafalan/index.php'),
+            'active' => !empty($item['active']),
+            'icon' => $item['icon'],
+            'extra' => false,
+        ];
+        continue;
+    }
+
+    $bottomNav[] = [
+        'label' => $item['label'] === 'Bahan Ajar' ? 'Bahan' : $item['label'],
+        'href' => $item['href'],
+        'active' => !empty($item['active']),
+        'icon' => $item['icon'],
+        'extra' => in_array($item['label'], ['Bahan Ajar', 'Kuis'], true),
+    ];
+}
+
+$bottomPrimaryActive = false;
+foreach ($bottomNav as $item) {
+    if (!$item['extra'] && $item['active']) {
+        $bottomPrimaryActive = true;
+        break;
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f3f6f2">
+  <meta name="mobile-web-app-capable" content="yes">
   <title><?= e($pageTitle) ?></title>
   <link rel="stylesheet" href="<?= e(app_url('assets/css/app.css')) ?>">
 </head>
@@ -213,10 +245,38 @@ $navItems = [
     </div>
   </div>
 
+  <nav class="bottom-nav" aria-label="Navigasi aplikasi">
+    <div class="bottom-nav-items">
+      <?php foreach ($bottomNav as $item): ?>
+        <a
+          class="bottom-nav-item<?= !empty($item['extra']) ? ' is-extra' : '' ?><?= $item['active'] ? ' is-active' : '' ?>"
+          href="<?= e($item['href']) ?>"
+          <?= $item['active'] ? 'aria-current="page"' : '' ?>
+        >
+          <span class="bottom-nav-icon"><?= $item['icon'] ?></span>
+          <span class="bottom-nav-label"><?= e($item['label']) ?></span>
+        </a>
+      <?php endforeach; ?>
+    </div>
+    <button
+      type="button"
+      class="bottom-nav-item bottom-nav-menu<?= $bottomPrimaryActive ? '' : ' is-active' ?>"
+      data-sidebar-open
+      aria-controls="app-sidebar"
+      aria-expanded="false"
+      aria-label="Buka menu"
+    >
+      <span class="bottom-nav-icon">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </span>
+      <span class="bottom-nav-label">Menu</span>
+    </button>
+  </nav>
+
   <script>
     (function () {
       var body = document.body;
-      var openBtn = document.querySelector('[data-sidebar-open]');
+      var openBtns = document.querySelectorAll('[data-sidebar-open]');
       var closeTargets = document.querySelectorAll('[data-sidebar-close]');
       var media = window.matchMedia('(min-width: 960px)');
       var storageKey = <?= json_encode(app_slug() . '.sidebarCollapsed', JSON_UNESCAPED_UNICODE) ?>;
@@ -226,9 +286,10 @@ $navItems = [
       }
 
       function syncToggle(expanded) {
-        if (!openBtn) return;
-        openBtn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-        openBtn.setAttribute('aria-label', expanded ? 'Tutup menu' : 'Buka menu');
+        openBtns.forEach(function (btn) {
+          btn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+          btn.setAttribute('aria-label', expanded ? 'Tutup menu' : 'Buka menu');
+        });
       }
 
       function setMobileOpen(open) {
@@ -252,9 +313,9 @@ $navItems = [
         }
       }
 
-      if (openBtn) {
-        openBtn.addEventListener('click', toggleSidebar);
-      }
+      openBtns.forEach(function (btn) {
+        btn.addEventListener('click', toggleSidebar);
+      });
 
       closeTargets.forEach(function (el) {
         el.addEventListener('click', function () {
@@ -281,6 +342,20 @@ $navItems = [
       }
 
       syncBreakpoint();
+
+      if (window.visualViewport) {
+        var viewport = window.visualViewport;
+        function syncKeyboard() {
+          if (isDesktop()) {
+            body.classList.remove('keyboard-open');
+            return;
+          }
+          var keyboard = window.innerHeight - viewport.height > 140;
+          body.classList.toggle('keyboard-open', keyboard);
+        }
+        viewport.addEventListener('resize', syncKeyboard);
+        viewport.addEventListener('scroll', syncKeyboard);
+      }
 
       if (media.addEventListener) {
         media.addEventListener('change', syncBreakpoint);

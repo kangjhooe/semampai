@@ -669,12 +669,16 @@ final class KuisLive
         }
 
         $tipe = (string) ($row['tipe'] ?? 'pilihan_ganda');
-        $opsi = self::decodeOpsiList($row['opsi_json'] ?? '[]');
+        $opsi = Kuis::decodeOpsi($row['opsi_json'] ?? '[]');
         $kuis = Kuis::findById((int) $sesi['kuis_id']);
         $opsiItems = [];
         if ($tipe === 'pilihan_ganda') {
-            foreach ($opsi as $i => $teks) {
-                $opsiItems[] = ['i' => (int) $i, 'teks' => (string) $teks];
+            foreach ($opsi as $i => $item) {
+                $opsiItems[] = [
+                    'i' => (int) $i,
+                    'teks' => Kuis::opsiTeks($item),
+                    'gambar' => Kuis::opsiGambarSrc((int) $row['id'], $item, (int) $i),
+                ];
             }
             if ((int) ($kuis['acak_opsi'] ?? 0) === 1 && $sesi['status'] === 'question') {
                 // Stable shuffle per sesi+soal so all players see same order
@@ -709,7 +713,7 @@ final class KuisLive
             $out['jawaban_teks'] = (string) ($row['jawaban_teks'] ?? '');
             $out['benar_teks'] = $tipe === 'isian'
                 ? (string) ($row['jawaban_teks'] ?? '')
-                : (string) ($opsi[(int) $row['jawaban_index']] ?? '');
+                : Kuis::opsiLabel($opsi[(int) $row['jawaban_index']] ?? null);
         }
 
         return $out;
@@ -767,19 +771,5 @@ final class KuisLive
         $row = $stmt->fetch();
 
         return $row ?: null;
-    }
-
-    /** @return list<string> */
-    private static function decodeOpsiList(mixed $raw): array
-    {
-        if (is_array($raw)) {
-            return array_values(array_map('strval', $raw));
-        }
-        $decoded = json_decode((string) $raw, true);
-        if (!is_array($decoded)) {
-            return [];
-        }
-
-        return array_values(array_map('strval', $decoded));
     }
 }

@@ -43,6 +43,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'pertanyaan' => (string) ($_POST['pertanyaan'] ?? ''),
             'tipe' => (string) ($_POST['tipe'] ?? 'pilihan_ganda'),
             'opsi' => $_POST['opsi'] ?? [],
+            'opsi_gambar_url' => is_array($_POST['opsi_gambar_url'] ?? null) ? $_POST['opsi_gambar_url'] : [],
+            'opsi_hapus_gambar' => is_array($_POST['opsi_hapus_gambar'] ?? null) ? $_POST['opsi_hapus_gambar'] : [],
             'jawaban_index' => (int) ($_POST['jawaban_index'] ?? -1),
             'jawaban_teks' => (string) ($_POST['jawaban_teks'] ?? ''),
             'timer_detik' => (string) ($_POST['timer_detik'] ?? ''),
@@ -50,10 +52,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'hapus_gambar' => isset($_POST['hapus_gambar']) ? 1 : 0,
         ];
         $file = $_FILES['gambar'] ?? null;
+        $opsiFiles = $_FILES['opsi_gambar'] ?? null;
+        $file = is_array($file) ? $file : null;
+        $opsiFiles = is_array($opsiFiles) ? $opsiFiles : null;
 
         if ($action === 'update_soal') {
             $soalId = (int) ($_POST['soal_id'] ?? 0);
-            $result = Kuis::updateSoal($soalId, $userId, $payload, $file);
+            $result = Kuis::updateSoal($soalId, $userId, $payload, $file, $opsiFiles);
             if ($result['ok']) {
                 clear_old();
                 flash('success', 'Soal diperbarui.');
@@ -62,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $soalErrors = $result['errors'];
             $editSoalId = $soalId;
         } else {
-            $result = Kuis::addSoal($id, $userId, $payload, $file);
+            $result = Kuis::addSoal($id, $userId, $payload, $file, $opsiFiles);
             if ($result['ok']) {
                 clear_old();
                 flash('success', 'Soal ditambahkan.');

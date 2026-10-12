@@ -20,10 +20,18 @@ $soal = $play['soal'] ?? [];
 $labels = ['A', 'B', 'C', 'D', 'E', 'F'];
 $hasTimer = $endsAt > 0;
 $hasSoalTimer = $stepMode && (int) ($soalEndsAt ?? 0) > 0 && empty($feedback);
+$progressPct = ($stepMode && (int) $totalSoal > 0)
+    ? (int) round((((int) $currentIndex + 1) / (int) $totalSoal) * 100)
+    : 0;
 ?>
 <div class="kuis-public kuis-play">
   <div class="kuis-public-card kuis-play-card">
     <header class="kuis-play-head">
+      <?php if ($stepMode): ?>
+        <div class="kuis-progress" role="progressbar" aria-valuemin="1" aria-valuemax="<?= (int) $totalSoal ?>" aria-valuenow="<?= (int) $currentIndex + 1 ?>" aria-label="Kemajuan soal">
+          <span style="width: <?= $progressPct ?>%"></span>
+        </div>
+      <?php endif; ?>
       <div class="kuis-play-top">
         <div>
           <p class="muted" style="margin:0;">Halo, <strong><?= e((string) $play['nama']) ?></strong></p>
@@ -77,7 +85,8 @@ $hasSoalTimer = $stepMode && (int) ($soalEndsAt ?? 0) > 0 && empty($feedback);
         <?= Csrf::field() ?>
         <input type="hidden" name="action" value="answer">
         <fieldset class="kuis-q">
-          <legend><?= (int) $currentIndex + 1 ?>. <?= e((string) $currentSoal['pertanyaan']) ?></legend>
+          <legend>Soal <?= (int) $currentIndex + 1 ?></legend>
+          <p class="kuis-q-ask"><?= e((string) $currentSoal['pertanyaan']) ?></p>
           <?php if (!empty($currentSoal['gambar'])): ?>
             <img class="kuis-q-image" src="<?= e((string) $currentSoal['gambar']) ?>" alt="" loading="lazy">
           <?php endif; ?>
@@ -97,7 +106,15 @@ $hasSoalTimer = $stepMode && (int) ($soalEndsAt ?? 0) > 0 && empty($feedback);
                 <label class="kuis-q-option">
                   <input type="radio" name="jawaban" value="<?= $oi ?>" required>
                   <span class="kuis-q-letter"><?= e($labels[$pos] ?? (string) ($pos + 1)) ?></span>
-                  <span><?= e($teks) ?></span>
+                  <span class="kuis-q-option-body">
+                    <?php $gambar = is_array($opt) ? (string) ($opt['gambar'] ?? '') : ''; ?>
+                    <?php if ($gambar !== ''): ?>
+                      <img class="kuis-q-option-img" src="<?= e($gambar) ?>" alt="<?= $teks === '' ? e('Gambar opsi ' . ($labels[$pos] ?? (string) ($pos + 1))) : '' ?>">
+                    <?php endif; ?>
+                    <?php if ($teks !== ''): ?>
+                      <span><?= e($teks) ?></span>
+                    <?php endif; ?>
+                  </span>
                 </label>
               <?php endforeach; ?>
             </div>
@@ -114,7 +131,8 @@ $hasSoalTimer = $stepMode && (int) ($soalEndsAt ?? 0) > 0 && empty($feedback);
         <?= Csrf::field() ?>
         <?php foreach ($soal as $i => $item): ?>
           <fieldset class="kuis-q">
-            <legend><?= $i + 1 ?>. <?= e((string) $item['pertanyaan']) ?></legend>
+            <legend>Soal <?= $i + 1 ?></legend>
+            <p class="kuis-q-ask"><?= e((string) $item['pertanyaan']) ?></p>
             <?php if (!empty($item['gambar'])): ?>
               <img class="kuis-q-image" src="<?= e((string) $item['gambar']) ?>" alt="" loading="lazy">
             <?php endif; ?>
@@ -133,7 +151,15 @@ $hasSoalTimer = $stepMode && (int) ($soalEndsAt ?? 0) > 0 && empty($feedback);
                   <label class="kuis-q-option">
                     <input type="radio" name="jawaban[<?= (int) $item['id'] ?>]" value="<?= $oi ?>" <?= $hasTimer ? '' : 'required' ?>>
                     <span class="kuis-q-letter"><?= e($labels[$pos] ?? (string) ($pos + 1)) ?></span>
-                    <span><?= e($teks) ?></span>
+                    <span class="kuis-q-option-body">
+                      <?php $gambar = is_array($opt) ? (string) ($opt['gambar'] ?? '') : ''; ?>
+                      <?php if ($gambar !== ''): ?>
+                        <img class="kuis-q-option-img" src="<?= e($gambar) ?>" alt="<?= $teks === '' ? e('Gambar opsi ' . ($labels[$pos] ?? (string) ($pos + 1))) : '' ?>">
+                      <?php endif; ?>
+                      <?php if ($teks !== ''): ?>
+                        <span><?= e($teks) ?></span>
+                      <?php endif; ?>
+                    </span>
                   </label>
                 <?php endforeach; ?>
               </div>
@@ -156,11 +182,14 @@ $hasSoalTimer = $stepMode && (int) ($soalEndsAt ?? 0) > 0 && empty($feedback);
     var endsAt = parseInt(box.getAttribute('data-ends-at') || '0', 10) * 1000;
     var valueEl = box.querySelector(valueSel);
     var done = false;
+    var initial = null;
     function pad(n) { return n < 10 ? '0' + n : String(n); }
     function tick() {
       var left = Math.max(0, Math.floor((endsAt - Date.now()) / 1000));
+      if (initial === null) initial = Math.max(left, 1);
+      var warnAt = Math.max(3, Math.min(10, Math.round(initial * 0.25)));
       if (valueEl) valueEl.textContent = pad(Math.floor(left / 60)) + ':' + pad(left % 60);
-      if (left <= 60) box.classList.add('is-urgent');
+      box.classList.toggle('is-urgent', left <= warnAt);
       if (left <= 0) {
         if (!done) { done = true; onZero(); }
         return;

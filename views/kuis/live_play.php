@@ -70,10 +70,14 @@
       return;
     }
     el.hidden = false;
+    var initial = null;
     function update() {
       var offset = (s.server_now || Math.floor(Date.now()/1000)) - Math.floor(Date.now()/1000);
       var left = Math.max(0, s.question_ends_at - (Math.floor(Date.now()/1000) + offset));
+      if (initial === null) initial = Math.max(left, 1);
+      var warnAt = Math.max(3, Math.min(10, Math.round(initial * 0.25)));
       val.textContent = pad(Math.floor(left / 60)) + ':' + pad(left % 60);
+      el.classList.toggle('is-urgent', left <= warnAt);
       if (left <= 0) clearInterval(timerIv);
     }
     update();
@@ -87,7 +91,8 @@
       return '<div class="kuis-feedback is-ok"><strong>Jawaban terkirim</strong><p>Tunggu reveal dari guru.</p></div>';
     }
     var html = '<form id="lp-form" class="stack">';
-    html += '<fieldset class="kuis-q"><legend>' + soal.nomor + '. ' + esc(soal.pertanyaan) + '</legend>';
+    html += '<fieldset class="kuis-q"><legend>Soal ' + soal.nomor + '</legend>';
+    html += '<p class="kuis-q-ask">' + esc(soal.pertanyaan) + '</p>';
     if (soal.gambar) html += '<img class="kuis-q-image" src="' + esc(soal.gambar) + '" alt="">';
     if (soal.tipe === 'isian') {
       html += '<div class="field"><label for="jawaban_teks">Jawaban</label>';
@@ -96,7 +101,10 @@
       html += '<div class="kuis-q-options live-q-options">';
       (soal.opsi || []).forEach(function (opt, idx) {
         html += '<label class="kuis-q-option"><input type="radio" name="jawaban" value="' + opt.i + '" required>';
-        html += '<span class="kuis-q-letter">' + esc(labels[idx] || (idx+1)) + '</span><span>' + esc(opt.teks) + '</span></label>';
+        html += '<span class="kuis-q-letter">' + esc(labels[idx] || (idx+1)) + '</span><span class="kuis-q-option-body">';
+        if (opt.gambar) html += '<img class="kuis-q-option-img" src="' + esc(opt.gambar) + '" alt="' + (opt.teks ? '' : ('Gambar opsi ' + esc(labels[idx] || (idx+1)))) + '">';
+        if (opt.teks) html += '<span>' + esc(opt.teks) + '</span>';
+        html += '</span></label>';
       });
       html += '</div>';
     }

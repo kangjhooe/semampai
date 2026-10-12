@@ -51,8 +51,10 @@ $kuisId = (int) ($kuis['id'] ?? $hasil['kuis_id'] ?? 0);
             </p>
           <?php else: ?>
             <ul class="kuis-review-opsi">
-              <?php foreach ($item['opsi'] as $oi => $teks): ?>
+              <?php foreach ($item['opsi'] as $oi => $opt): ?>
                 <?php
+                $teks = is_array($opt) ? (string) ($opt['teks'] ?? '') : (string) $opt;
+                $gambar = is_array($opt) ? (string) ($opt['gambar'] ?? '') : '';
                 $cls = '';
                 if ($oi === (int) $item['benar']) {
                     $cls = 'is-correct';
@@ -62,7 +64,14 @@ $kuisId = (int) ($kuis['id'] ?? $hasil['kuis_id'] ?? 0);
                 ?>
                 <li class="<?= e($cls) ?>">
                   <span><?= e($labels[$oi] ?? (string) ($oi + 1)) ?>.</span>
-                  <?= e((string) $teks) ?>
+                  <span class="kuis-opsi-body">
+                    <?php if ($gambar !== ''): ?>
+                      <img class="kuis-q-option-img" src="<?= e($gambar) ?>" alt="<?= $teks === '' ? e('Gambar opsi ' . ($labels[$oi] ?? (string) ($oi + 1))) : '' ?>">
+                    <?php endif; ?>
+                    <?php if ($teks !== ''): ?>
+                      <span class="kuis-opsi-caption"><?= e($teks) ?></span>
+                    <?php endif; ?>
+                  </span>
                 </li>
               <?php endforeach; ?>
             </ul>

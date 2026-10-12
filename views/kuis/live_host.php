@@ -114,7 +114,10 @@ $sesiId = (int) $sesi['id'];
       html += '<ul class="live-opsi-preview">';
       (soal.opsi || []).forEach(function (opt, idx) {
         var cls = showKey && opt.i === soal.jawaban_index ? ' is-correct' : '';
-        html += '<li class="' + cls + '"><span>' + esc(labels[idx] || (idx+1)) + '</span> ' + esc(opt.teks) + '</li>';
+        html += '<li class="' + cls + '"><span>' + esc(labels[idx] || (idx+1)) + '</span><span class="kuis-opsi-body">';
+        if (opt.gambar) html += '<img class="kuis-q-option-img" src="' + esc(opt.gambar) + '" alt="' + (opt.teks ? '' : ('Gambar opsi ' + esc(labels[idx] || (idx+1)))) + '">';
+        if (opt.teks) html += '<span>' + esc(opt.teks) + '</span>';
+        html += '</span></li>';
       });
       html += '</ul>';
     }
